@@ -1,0 +1,14 @@
+// Current-flow constraint thresholds sourced from ewr-analysis-dashboard's
+// data/map/constraint_sites.csv. For ranges, threshold_ml_d is the lower bound.
+window.RIVER_CONSTRAINTS = [
+  { name:'Hume Dam to Yarrawonga Weir', river:'Murray River', site:'Doctors Point', lat:-36.107, lon:147.031, gaugeId:'409017', threshold_ml_d:25000, current:'25,000', notes:'Victorian CMP feasibility study, Table 16: Doctors Point current constraint is 25,000 ML/d' },
+  { name:'Yarrawonga Weir to Wakool Junction', river:'Murray River', site:'Yarrawonga Weir', lat:-36.009, lon:146.006, gaugeId:'409025', threshold_ml_d:15000, current:'15,000', notes:'Victorian CMP feasibility study, Table 16: Yarrawonga Weir current constraint is 15,000 ML/d' },
+  { name:'Torrumbarry Weir', river:'Murray River', site:'Torrumbarry Weir', lat:-35.950, lon:144.450, gaugeId:'409215', threshold_ml_d:15000, current:'15,000–18,000', notes:'Current constraint range from source file; nearest gauge with flow observations is Murray at Barmah' },
+  { name:'Mid Goulburn River', river:'Goulburn River', site:'Molesworth', lat:-37.154, lon:145.559, gaugeId:'405223', threshold_ml_d:10000, current:'10,000', notes:'Victorian CMP feasibility study, Table 15: Molesworth current constraint is 10,000 ML/d' },
+  { name:'Lower Goulburn River', river:'Goulburn River', site:'Shepparton', lat:-36.380, lon:145.400, gaugeId:'405200', threshold_ml_d:9500, current:'9,500', notes:'Victorian CMP feasibility study, Table 15: current constraint at Shepparton is 9,500 ML/d' },
+  { name:'Murrumbidgee (Wagga Wagga)', river:'Murrumbidgee River', site:'Wagga Wagga gauge', lat:-35.108, lon:147.360, gaugeId:'410001', threshold_ml_d:22000, current:'22,000–32,000', notes:'Temporary operational limit is 22,000 ML/d at Wagga Wagga; 32,000 ML/d water sharing plan limit at Gundagai' },
+  { name:'Mundarlo (Tenandra Rd) Bridge', river:'Murrumbidgee River', site:'Wagga Wagga gauge flows', lat:-35.078, lon:147.844, gaugeId:'410001', threshold_ml_d:32000, current:'32,000', notes:'Low-level bridge overtopped above 32,000 ML/d at Wagga Wagga' },
+  { name:'Mundowy Lane (Collingullie)', river:'Murrumbidgee River / Beavers Creek', site:'Wagga Wagga gauge flows', lat:-35.095, lon:147.135, gaugeId:'410001', threshold_ml_d:35000, current:'35,000–44,000', notes:'Water crosses the road at 35,000 ML/d; road closure at 44,000 ML/d at Wagga Wagga' },
+  { name:'Lower Darling', river:'Darling River', site:'OK Weir', lat:-32.392, lon:142.417, gaugeId:'425001', threshold_ml_d:null, current:'Unconfirmed', notes:'No confirmed current constraint in source file' },
+  { name:'Gwydir', river:'Gwydir River', site:'', lat:-29.467, lon:149.841, gaugeId:'418004', threshold_ml_d:null, current:'Unconfirmed', notes:'No confirmed current constraint in source file' }
+];

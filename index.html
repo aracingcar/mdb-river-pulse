@@ -39,6 +39,7 @@
   #nav button { width:28px; height:28px; border:1px solid #d0d1d0; border-radius:7px; background:rgba(245,242,237,.94); font:14px var(--mono); display:grid; place-items:center; padding:0; transition:background .15s; } #nav button:hover,#tl button:hover,#pill:hover { background:#fff; } #nav .center { grid-column:2; } #nav .zoom { width:35px; height:35px; justify-self:center; } #nav .zoom-row { grid-row:span 1; } #nav .wide { grid-column:1/4; justify-self:center; width:54px; font-size:10px; letter-spacing:.04em; height:34px; } #nav .spacer { grid-column:1/4; height:6px; } #nav { grid-template-rows:35px 35px 8px 28px 28px 28px 35px 35px 35px 35px 38px; }
   #nav button[data-a=zin] { grid-row:1; grid-column:2; } #nav button[data-a=zout] { grid-row:2; grid-column:2; } #nav button[data-a=up] { grid-row:4; grid-column:2; } #nav button[data-a=left] { grid-row:5; grid-column:1; } #nav button[data-a=right] { grid-row:5; grid-column:3; } #nav button[data-a=down] { grid-row:6; grid-column:2; } #nav button[data-a=rotl] { grid-row:7; grid-column:2; } #nav button[data-a=rotr] { grid-row:8; grid-column:2; } #nav button[data-a=tiltu] { grid-row:9; grid-column:2; } #nav button[data-a=tiltd] { grid-row:10; grid-column:2; } #nav button[data-a=reset] { grid-row:11; }
   #reliefBox { font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); text-align:center; margin-top:5px; } #reliefBox input { width:70px; accent-color:#287b90; display:block; margin:7px auto 0; height:9px; cursor:pointer; }
+  #constraintsBox { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:2px; color:var(--dim); font-size:9px; letter-spacing:.13em; text-transform:uppercase; cursor:pointer; } #constraintsBox input { width:13px; height:13px; margin:0; accent-color:#ff00ff; cursor:pointer; }
   #bar { z-index:1; left:0; right:0; bottom:0; height:245px; background:linear-gradient(transparent,rgba(135,161,193,.8) 80%); pointer-events:none; }
   #tl { left:18px; right:18px; bottom:64px; height:87px; display:flex; align-items:center; gap:16px; } #tl button { flex-shrink:0; border:1px solid #7f94a7; background:#f5f2ed99; color:var(--ink); display:grid; place-items:center; }
   #play { width:44px; height:44px; border-radius:50%; font:17px Arial,sans-serif; } #replay { width:34px; height:34px; border-radius:50%; font-size:20px; } #spd { width:43px; height:32px; font-size:10px; border-radius:18px; }
@@ -73,11 +74,11 @@
 <div class="abs" id="barrage"><span>Barrage releases</span><b id="barrageNow">—</b><small id="barrageU">ML/d</small></div>
 <section class="abs" id="flowBox" aria-label="Combined gauge discharge">
   <div>Reporting gauges combined</div>
-  <div class="big"><span id="flowNow">—</span> <small id="flowU">m³/s</small></div>
+  <div class="big"><span id="flowNow">—</span> <small id="flowU">ML/d</small></div>
   <div class="meter"><i id="flowMeter" style="width:0"></i></div><div id="flowSub">&nbsp;</div>
 </section>
 <div class="abs" id="legend"><div>Water temperature</div><div class="bar"></div><div class="r"><span id="tLo">—</span><span id="tHi">—</span></div><div id="missing">No temperature observation</div></div>
-<div class="abs" id="units" role="group" aria-label="Discharge units"><button id="uCms" class="on" aria-pressed="true">m³/s</button><button id="uMl" aria-pressed="false">ML/d</button></div>
+<div class="abs" id="units" role="group" aria-label="Discharge units"><button id="uCms" aria-pressed="false">m³/s</button><button id="uMl" class="on" aria-pressed="true">ML/d</button></div>
 <aside id="camera" aria-label="Map camera">
   <nav id="nav" aria-label="Camera controls">
     <button class="center zoom" data-a="zin" aria-label="Zoom in" title="Zoom in">+</button>
@@ -93,6 +94,7 @@
     <button class="wide" data-a="reset" title="Reset view">RESET</button>
   </nav>
   <label id="reliefBox">Relief<input type="range" id="relief" min="0" max="3" step="0.05" value="1" aria-label="River height exaggeration"></label>
+  <label id="constraintsBox"><input type="checkbox" id="constraintsToggle" aria-label="Show constraint bands">Constraints</label>
 </aside>
 <div class="abs" id="bar"></div>
 <div class="abs" id="tl">
@@ -107,7 +109,9 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
 <script src="data/data.js"></script>
+<script src="data/constraints.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const R = window.RIVERDATA;
@@ -125,7 +129,7 @@ document.querySelector('#head .kick').textContent='Every river, every day since 
 
 // ---------- helpers ----------
 const ML_TO_CMS = 1 / 86.4;
-let useCms = true;
+let useCms = false;
 const fmtFlow = ml => useCms ? Math.round(ml * ML_TO_CMS).toLocaleString('en-AU') : Math.round(ml).toLocaleString('en-AU');
 const flowUnit = () => useCms ? 'm³/s' : 'ML/d';
 function samp(a, f) {
@@ -176,13 +180,85 @@ function shape(c, g, w, mk) {
     let dx = (b[0] - a[0]) * k, dy = b[1] - a[1]; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
     L.push([c[i][0] - dy * wd / k, c[i][1] + dx * wd]); Rr.push([c[i][0] + dy * wd / k, c[i][1] - dx * wd]);
   }
-  return { ring:[...L, ...Rr.reverse()], mean:fm };
+  return { ring:[...L, ...Rr.reverse()], mean:fm, wd };
 }
+const gaugeById = new Map(gauges.map(g => [g.id, g]));
+const constraints = (window.RIVER_CONSTRAINTS || []).filter(c => c.threshold_ml_d && gaugeById.has(c.gaugeId)).map(c => ({
+  ...c, gauge:gaugeById.get(c.gaugeId), status:'inactive', flow:NaN, parts:[]
+}));
+function constraintRing(c, mk) {
+  const key=mk+'|'+c.riverChunk.mean; if(c._ringKey===key) return c.parts;
+  c._ringKey=key;
+  // Walk the river network from the site: UP_KM upstream and DOWN_KM downstream, following
+  // connected chunks (a chunk's path runs downstream). The band is split per chunk so each
+  // piece can sit at its own chunk's height.
+  const UP_KM=5, DOWN_KM=15, cosLat=Math.cos(c.lat*Math.PI/180);
+  const km=(a,b)=>Math.hypot((a[0]-b[0])*111.32*cosLat,(a[1]-b[1])*111.32);
+  const pk=p=>p[0].toFixed(4)+','+p[1].toFixed(4);
+  if(!chunks.byFirst){chunks.byFirst=new Map();chunks.byLast=new Map();for(const ch of chunks){for(const [m,p] of [[chunks.byFirst,ch.path[0]],[chunks.byLast,ch.path[ch.path.length-1]]]){const k=pk(p);(m.get(k)||m.set(k,[]).get(k)).push(ch);}}}
+  const collected=new Map(), seen=new Set();
+  const walk=(ch,from,dir,left)=>{ // from = vertex index to start at, dir = +1 downstream / -1 upstream
+    const tag=ch.path[0]+'|'+dir; if(seen.has(tag)) return; seen.add(tag);
+    const pts=[ch.path[from]]; let i=from, rem=left;
+    while(true){
+      const n=i+dir; if(n<0||n>=ch.path.length) break;
+      const d=km(ch.path[i],ch.path[n]);
+      if(d>=rem){const t=rem/(d||1);pts.push([ch.path[i][0]+(ch.path[n][0]-ch.path[i][0])*t,ch.path[i][1]+(ch.path[n][1]-ch.path[i][1])*t]);rem=0;break;}
+      rem-=d; pts.push(ch.path[n]); i=n;
+    }
+    if(pts.length>1){const e=collected.get(ch)||[];e.push({sub:pts,wd:shape(pts,ch.g,ch.w,mk).wd});collected.set(ch,e);}
+    if(rem<=0) return;
+    const next=dir>0?chunks.byFirst.get(pk(ch.path[ch.path.length-1])):chunks.byLast.get(pk(ch.path[0]));
+    for(const nx of next||[]) if(nx!==ch) walk(nx,dir>0?0:nx.path.length-1,dir,rem);
+  };
+  const home=c.riverChunk; let at=0, best=Infinity;
+  home.path.forEach((p,i)=>{const d=km(p,[c.lon,c.lat]);if(d<best){best=d;at=i;}});
+  walk(home,at,-1,UP_KM); walk(home,at,1,DOWN_KM);
+  const byChunk=[...collected].map(([ch,reaches])=>({ch,reaches,d:Math.min(...ch.path.map(p=>km(p,[c.lon,c.lat])))}));
+  if(!byChunk.length) return c.parts=[];
+  byChunk.sort((x,y)=>x.d-y.d);
+  // Buffer of some reaches at a scale of their own width: union of a quad per segment and an
+  // octagon per vertex, so tight bends merge instead of folding into hooks.
+  const buffer=(reaches,scale)=>{
+    const parts=[];
+    for(const {sub,wd:w0} of reaches){
+      const wd=w0*scale;
+      for(let i=0;i<sub.length;i++){
+        parts.push([Array.from({length:9},(_,k)=>{const t=Math.PI*2*k/8+Math.PI/8;return [sub[i][0]+Math.cos(t)*wd/cosLat,sub[i][1]+Math.sin(t)*wd];})]);
+        if(i<sub.length-1){
+          let dx=(sub[i+1][0]-sub[i][0])*cosLat, dy=sub[i+1][1]-sub[i][1]; const m=Math.hypot(dx,dy)||1; dx/=m; dy/=m;
+          const ox=-dy*wd/cosLat, oy=dx*wd;
+          parts.push([[[sub[i][0]+ox,sub[i][1]+oy],[sub[i+1][0]+ox,sub[i+1][1]+oy],[sub[i+1][0]-ox,sub[i+1][1]-oy],[sub[i][0]-ox,sub[i][1]-oy],[sub[i][0]+ox,sub[i][1]+oy]]]);
+        }
+      }
+    }
+    return polygonClipping.union(...parts);
+  };
+  const inner=buffer(byChunk.flatMap(g=>g.reaches),1);
+  const area=r=>Math.abs(r.reduce((s,p,i)=>{const q=r[(i+1)%r.length];return s+p[0]*q[1]-q[0]*p[1];},0));
+  const parts=[]; let claimed=inner;
+  for(const g of byChunk){ // only the band outside the rivers, each chunk claiming its own share
+    const outer=buffer(g.reaches,1.5), band=polygonClipping.difference(outer,claimed);
+    claimed=polygonClipping.union(claimed,outer);
+    for(const poly of band) if(area(poly[0])>1e-9) parts.push({chunk:g.ch,poly:poly.map(r=>r.slice(0,-1)),elevation:0});
+  }
+  return c.parts=parts;
+}
+const constraintPieces=cs=>cs.flatMap(c=>c.parts.map(p=>({c,poly:p.poly,elevation:p.elevation})));
 let curMonth = binMonth[0];
 const chunks = rivers.map(r => {
   const sh = shape(r.c, r.g, r.w, curMonth), c = r.c;
   return { ring:sh.ring, path:c, g:r.g, w:r.w, mean:sh.mean, h:0, col:[...NODATA,170], flow:NaN, temp:NaN, lat:c[0][1], lon:c[0][0] };
 });
+for (const c of constraints) {
+  const gi=gauges.indexOf(c.gauge);
+  const nearby=chunks.filter(ch=>ch.g.includes(gi));
+  const candidates=nearby.length?nearby:chunks;
+  c.riverChunk=candidates.reduce((best,ch)=>{
+    const d=ch.path.reduce((near,p)=>Math.min(near,(p[0]-c.lon)**2*Math.cos(c.lat*Math.PI/180)**2+(p[1]-c.lat)**2),Infinity);
+    return !best||d<best.distance?{chunk:ch,distance:d}:best;
+  },null)?.chunk;
+}
 // ---------- lakes & storages: real outlines; fill from storage volume (else level) vs the observed range ----------
 const lakes = (R.lakes || []).map(l => {
   const lakeLike = g => /LAKE|DAM\b|\bRES|STORAGE|BARRAGE|WEIR|JETTY|COORONG|\bLK\b/i.test(g.name);   // river gauges near a lake don't measure the lake
@@ -216,7 +292,7 @@ const overlay = new deck.MapboxOverlay({ interleaved:false, layers:[] });
 map.addControl(overlay);
 
 // ---------- state ----------
-let frac = 0, playing = false, speedIx = 0, last = performance.now(), dirty = true, hover = null, relief = 1;
+let frac = 0, playing = false, speedIx = 0, last = performance.now(), dirty = true, hover = null, relief = 1, constraintsVisible = false;
 const SPEEDS = [1, 2, 4, 8];
 $('timeline').max = N - 1;
 const dateAt = f => new Date(t0.getTime() + (meta.aggregation==='daily_mean'?Math.floor(f):f) * STEP * 3600e3);
@@ -237,6 +313,17 @@ function updateValues() {
     c.flow = fw ? f / fw : NaN; c.temp = tw ? t / tw : NaN;
     c.h = (isNaN(c.flow) ? 60 : 220 + Math.log10(1 + Math.max(0,c.flow)) ** 2 * 420) * relief;
     c.col = isNaN(c.temp) ? [...NODATA, isNaN(c.flow) ? 150 : 215] : [...ramp(c.temp), 245];
+  }
+  for (const c of constraints) {
+    c.flow = samp(c.gauge.flow, frac);
+    const ratio = c.flow / c.threshold_ml_d;
+    c.status = !Number.isFinite(ratio) ? 'inactive' : ratio >= 1 ? 'above' : ratio >= .95 ? 'near' : 'inactive';
+    c.ratio = ratio;
+    c.parts = constraintRing(c,curMonth);
+    // Match the roof of the nearest reach exactly, including relief changes.
+    c.elevation = c.riverChunk?.h ?? 0;
+    for (const p of c.parts) p.elevation = p.chunk.h;
+    c.fillColor = c.status === 'above' ? [255,0,255,205] : c.status === 'near' ? [255,165,255,72] : [255,165,255,0];
   }
   return { tot, nf, nt };
 }
@@ -263,6 +350,18 @@ function showLakeTip(info) {
 }
 const ML_TO_CMS_B = 1 / 86.4;
 function showTip(info) {
+  if (info.object && (info.layer?.id === 'constraints')) {
+    const c=info.object.c; tip.replaceChildren();
+    const h=document.createElement('h2'); h.textContent=c.name;
+    const v=document.createElement('div'); v.className='value'; v.textContent=fmtFlow(c.flow)+' ';
+    const u=document.createElement('small'); u.textContent=flowUnit(); v.append(u);
+    const d=document.createElement('div'); d.className='detail';
+    d.textContent=(c.status==='above'?'Above current constraint':`Within 5% of current constraint`)+' · limit '+c.current+' ML/d'+(c.current.includes('–')?' (lower bound alert)':'');
+    const src=document.createElement('div'); src.className='detail'; src.textContent=c.site+' · gauge '+c.gauge.name.replace(/ @ /g,' · ')+' · '+c.notes;
+    tip.append(h,v,d,src); tip.style.display='block';
+    tip.style.left=Math.max(8,Math.min(info.x+14,innerWidth-tip.offsetWidth-10))+'px';
+    tip.style.top=Math.max(8,Math.min(info.y+14,innerHeight-tip.offsetHeight-10))+'px'; return;
+  }
   if (info.object && info.layer?.id === 'barrage') { tip.replaceChildren(); const h = document.createElement('h2'); h.textContent = 'Barrage releases to the Coorong & Murray Mouth'; const v = document.createElement('div'); v.className = 'value'; v.textContent = (useCms ? Math.round(info.object.v * ML_TO_CMS_B) : Math.round(info.object.v)).toLocaleString('en-AU') + ' ' + (useCms ? 'm³/s' : 'ML/d'); const d = document.createElement('div'); d.className = 'detail'; d.textContent = 'All five barrages combined · SA DEW calculated flow'; tip.append(h, v, d); tip.style.display = 'block'; tip.style.left = Math.max(8, Math.min(info.x + 14, innerWidth - tip.offsetWidth - 10)) + 'px'; tip.style.top = Math.max(8, Math.min(info.y + 14, innerHeight - tip.offsetHeight - 10)) + 'px'; return; }
   if (info.object && info.layer?.id === 'lakes') return showLakeTip(info);
   const c = info.object;
@@ -288,6 +387,7 @@ function render() {
   updateLakes();
   { const b = barrNow(); $('barrageNow').textContent = isNaN(b) ? '—' : (useCms ? Math.round(b * ML_TO_CMS_B).toLocaleString('en-AU') : Math.round(b).toLocaleString('en-AU')); $('barrageU').textContent = useCms ? 'm³/s' : 'ML/d'; }
   stats = updateValues(); dirty = false;
+  const active=constraintsVisible ? constraints.filter(c=>c.status!=='inactive') : [];
   overlay.setProps({ layers:[
     new deck.PolygonLayer({ id:'wetlands', data:R.wetlands||[], getPolygon:d=>d.p, extruded:false, getFillColor:[64,112,128,70], getLineColor:[40,84,100,200], stroked:true, lineWidthUnits:'pixels', getLineWidth:1.2, pickable:false }),
     new deck.ColumnLayer({ id:'barrage', data:isNaN(barrNow()) ? [] : [{ pos:BARR.pos, v:barrNow() }], getPosition:d=>d.pos, radius:7000, diskResolution:24, extruded:true, getElevation:d=>2000 + d.v / barrMax * 40000 * relief, getFillColor:[26,92,120,240], pickable:true, material:{ambient:.8,diffuse:.45,shininess:10,specularColor:[40,40,40]}, updateTriggers:{getElevation:[frac,relief]} }),
@@ -296,7 +396,10 @@ function render() {
     new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief,getWidth:curMonth} }),
     new deck.SolidPolygonLayer({ id:'rivers', data:chunks, getPolygon:d=>d.ring, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col,
       material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true,
-      autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getPolygon:curMonth,getElevation:[frac,relief],getFillColor:frac} })
+      autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getPolygon:curMonth,getElevation:[frac,relief],getFillColor:frac} }),
+    new deck.SolidPolygonLayer({ id:'constraint-footprints', data:constraintPieces(constraints), getPolygon:d=>d.poly, extruded:true, getElevation:d=>d.elevation, getFillColor:[255,115,245,0], getLineColor:[255,115,245,0], getLineWidth:2.8, lineWidthUnits:'pixels', stroked:true, pickable:false, material:{ambient:.9,diffuse:.35,shininess:4,specularColor:[35,35,35]}, updateTriggers:{getPolygon:frac,getElevation:[frac,relief]} }),
+    new deck.SolidPolygonLayer({ id:'constraints', data:constraintPieces(active), getPolygon:d=>d.poly, extruded:true, getElevation:d=>d.elevation, getFillColor:d=>d.c.fillColor,
+      material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true, updateTriggers:{getPolygon:frac,getElevation:[frac,relief],getFillColor:frac} })
   ], pickingRadius:6, onHover:info=>{hover=info;showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:info=>{hover=info;showTip(info);} });
   $('date').textContent = dateLabel(frac);
   $('timeline').value = frac;
@@ -352,6 +455,7 @@ $('spd').onclick = () => { speedIx = (speedIx + 1) % SPEEDS.length; $('spd').tex
 $('uCms').onclick = () => { useCms = true; $('uCms').classList.add('on'); $('uMl').classList.remove('on'); $('uCms').setAttribute('aria-pressed','true'); $('uMl').setAttribute('aria-pressed','false'); dirty=true; };
 $('uMl').onclick = () => { useCms = false; $('uMl').classList.add('on'); $('uCms').classList.remove('on'); $('uMl').setAttribute('aria-pressed','true'); $('uCms').setAttribute('aria-pressed','false'); dirty=true; };
 $('relief').oninput = e => { relief = +e.target.value; dirty = true; };
+$('constraintsToggle').onchange = e => { constraintsVisible = e.target.checked; dirty = true; };
 addEventListener('keydown', e => {
   if (e.key==='Escape') { $('drawer').hidden=true; $('pill').setAttribute('aria-expanded','false'); $('regionMenu').hidden=true; $('region').setAttribute('aria-expanded','false'); }
   if (e.target.matches('input,button,a')) return;
