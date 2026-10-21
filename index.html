@@ -192,7 +192,7 @@ function constraintRing(c, mk) {
   // Walk the river network from the site: UP_KM upstream and DOWN_KM downstream, following
   // connected chunks (a chunk's path runs downstream). The band is split per chunk so each
   // piece can sit at its own chunk's height.
-  const UP_KM=5, DOWN_KM=15, cosLat=Math.cos(c.lat*Math.PI/180);
+  const UP_KM=5, DOWN_KM=10, cosLat=Math.cos(c.lat*Math.PI/180);
   const km=(a,b)=>Math.hypot((a[0]-b[0])*111.32*cosLat,(a[1]-b[1])*111.32);
   const pk=p=>p[0].toFixed(4)+','+p[1].toFixed(4);
   if(!chunks.byFirst){chunks.byFirst=new Map();chunks.byLast=new Map();for(const ch of chunks){for(const [m,p] of [[chunks.byFirst,ch.path[0]],[chunks.byLast,ch.path[ch.path.length-1]]]){const k=pk(p);(m.get(k)||m.set(k,[]).get(k)).push(ch);}}}
