@@ -86,6 +86,21 @@
   @keyframes ewrStripes { to { background-position:18px 0, 0 0; } }
   @keyframes ewrFrenzyT { from { box-shadow:0 0 0 0 var(--glow); } to { box-shadow:0 0 7px 1px var(--glow); } }
   @keyframes ewrIconPop { from { transform:scale(1); } to { transform:scale(1.15); } }
+  #ewrDisc { margin-top:12px; padding-top:8px; border-top:1px solid rgba(100,126,150,.5); } #ewrDisc button { display:flex; align-items:center; gap:8px; padding:0; border:0; background:none; font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); cursor:pointer; pointer-events:auto; } #ewrDisc button span { color:#287b90; }
+  #ewrDisc button.pop { animation:ewrTrayPop .5s ease-out; transform-origin:left center; }
+  #ewrDiscN { margin:7px 0 6px; font-size:9px; letter-spacing:.13em; color:#287b90; }
+  #ewrDiscRow { display:flex; gap:9px; }
+  #ewrDiscRow .slot { display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:rgba(35,38,43,.14); color:rgba(35,38,43,.35); font:600 11px 'IBM Plex Mono',monospace; }
+  #ewrDiscRow .slot svg { display:none; width:15px; height:15px; fill:#fff; }
+  #ewrDiscRow .slot.got { background:linear-gradient(135deg,var(--c1),var(--c2)); border:2px solid #fff; box-shadow:0 0 0 1px var(--c1); } #ewrDiscRow .slot.got svg { display:block; } #ewrDiscRow .slot.got span { display:none; }
+  #ewrDiscRow .slot.pop { animation:ewrTrayPop .5s ease-out; }
+  @keyframes ewrTrayPop { 0% { transform:scale(1); } 40% { transform:scale(1.5); } 100% { transform:scale(1); } }
+  #ewrLoot .loot { position:fixed; left:0; top:0; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:8; cursor:pointer; pointer-events:auto; will-change:transform; }
+  #ewrLoot .lootIn { display:grid; place-items:center; width:100%; height:100%; border-radius:50%; background:linear-gradient(135deg,var(--c1),var(--c2)); border:2px solid #fff; box-shadow:0 0 0 1px var(--c1), 0 0 10px 2px var(--glow), 0 2px 6px rgba(20,40,60,.3); animation:ewrBob 1.1s ease-in-out infinite alternate; }
+  #ewrLoot .lootIn svg { width:16px; height:16px; fill:#fff; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
+  #ewrLoot .loot.idle .lootIn::after { content:''; position:absolute; inset:-7px; border-radius:50%; border:2px solid var(--glow); animation:ewrRing 1.4s ease-out infinite; }
+  #ewrLoot .spark { position:fixed; left:0; top:0; width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%; background:var(--glow); z-index:8; pointer-events:none; }
+  @keyframes ewrBob { from { transform:translateY(-4px); } to { transform:translateY(4px); } }
   #ewrFx { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; }
   .ewrPop { position:absolute; left:0; top:0; will-change:transform; white-space:nowrap; }
   .ewrPop b { display:block; font:600 11px 'IBM Plex Mono',monospace; color:#0d5c3a; background:rgba(236,250,242,.94); border:1px solid #2a9d63; border-radius:10px; padding:2px 7px; box-shadow:0 2px 8px rgba(20,60,40,.25); transform:translate(-50%,0); animation:ewrRise 2.4s ease-out forwards; }
@@ -113,7 +128,7 @@
 <body>
 <div id="map"></div>
 <div id="ewrFx" aria-hidden="true"></div>
-<section id="ewrObj" hidden aria-label="Ecological objectives met by successful EWR events"><button id="ewrSdl" aria-expanded="false" aria-controls="ewrSdlMenu" aria-label="Filter by SDL unit"><span id="ewrSdlName">Ecological themes</span> <span>▾</span></button><div id="ewrSdlMenu" hidden></div><div id="ewrObjRows"></div></section>
+<section id="ewrObj" hidden aria-label="Ecological objectives met by successful EWR events"><button id="ewrSdl" aria-expanded="false" aria-controls="ewrSdlMenu" aria-label="Filter by SDL unit"><span id="ewrSdlName">Ecological themes</span> <span>▾</span></button><div id="ewrSdlMenu" hidden></div><div id="ewrObjRows"></div><div id="ewrDisc" hidden><button id="ewrDiscBtn" aria-expanded="false" aria-controls="ewrDiscBody">Discoveries <span>▸</span></button><div id="ewrDiscBody" hidden><div id="ewrDiscN"></div><div id="ewrDiscRow"></div></div></div></section>
 <div id="tip"></div>
 <div id="err"></div>
 
@@ -605,7 +620,8 @@ function ewrTick() {
       if (mb) for (const [g, all] of mb) { const items = ewrScope ? all.filter(c => c.sdl === ewrScope) : all; if (!items.length || bad >= EWR_BAD_PER_FRAME) continue; hitBad ||= new Set(); ewrBadPop(g, items); bad++; for (const it of items) for (const k of it.cats) hitBad.add(k); }
     }
   }
-  if (day !== ewrDay || ewrObjDirty) ewrObjUpdate(day, hitNow, hitBad);
+  if (day !== ewrDay || ewrObjDirty) ewrObjUpdate(day, hitNow, hitBad, ewrShown && playing && !ewrObjDirty && day > ewrDay && day - ewrDay <= 40);
+  if (ewrShown && playing) for (const k of objKeys) if (prevMax[k] && !spawned[k]) { spawned[k] = true; lootSpawn(k); }   // already in frenzy when play is pressed
   ewrDay = day; ewrObjDirty = false;
   ewrLive.forEach(ewrPlace);
 }
@@ -675,17 +691,63 @@ for (const k of objKeys) {
   $('ewrObjRows').append(row); objRows[k] = { row, fill: row.querySelector('.fill'), lost: row.querySelector('.lost'), trk: row.querySelector('.trk'), dash: row.querySelector('.dash') };
 }
 const barPct = v => isNaN(v) ? '0%' : (Math.min(v, OBJ_MAX) / OBJ_MAX * 100).toFixed(1) + '%';
-function ewrObjUpdate(day, hit, bad) {
+
+// ---------- collectables: a themed item pops out of a bar each time that theme enters frenzy; click it (or wait) to collect it into the tray ----------
+const lootBox = document.createElement('div'); lootBox.id = 'ewrLoot'; document.body.append(lootBox);
+const prevMax = {}, found = {}, spawned = {}, discRow = $('ewrDiscRow'), slots = {};
+for (const k of objKeys) {   // one slot per theme: greyed until that theme's collectable has been collected
+  const t = document.createElement('span'); t.className = 'slot'; t.title = '? – reach frenzy in this theme to discover it';
+  t.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true">' + (THEME_ICON[k] || '') + '</svg><span>?</span>'; discRow.append(t); slots[k] = t;
+  for (const v of ['--c1', '--c2']) t.style.setProperty(v, getComputedStyle(objRows[k].row).getPropertyValue(v));
+}
+$('ewrDiscBtn').onclick = () => { const open = $('ewrDiscBody').hidden; $('ewrDiscBody').hidden = !open; $('ewrDiscBtn').setAttribute('aria-expanded', String(open)); $('ewrDiscBtn').lastChild.textContent = open ? '▾' : '▸'; };
+const REDUCED = matchMedia('(prefers-reduced-motion:reduce)').matches;
+function lootCollect(el, k) {
+  if (el._done) return; el._done = true; clearTimeout(el._t);
+  $('ewrDisc').hidden = false;   // the discoveries section is revealed by the first collectable
+  const tr = ($('ewrDiscBody').hidden ? $('ewrDiscBtn') : slots[k]).getBoundingClientRect(), tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2, cur = el._pos;
+  const done = () => { el.remove(); found[k] = true; const t = slots[k]; t.classList.add('got'); t.title = OBJ[k]; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop'); $('ewrDiscN').textContent = Object.keys(found).length + '/' + objKeys.length + ' found'; const b = $('ewrDiscBtn'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); };
+  if (REDUCED) return done();
+  el.classList.remove('idle');
+  el.animate([{ transform: `translate(${cur[0]}px,${cur[1]}px) scale(1)`, opacity: 1 }, { transform: `translate(${tx}px,${ty}px) scale(.5)`, opacity: .4 }], { duration: 550, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).onfinish = done;
+}
+function lootSpawn(k) {
+  const r = objRows[k], fr = r.trk.getBoundingClientRect(), sx = fr.right - 10, sy = fr.top + fr.height / 2, cs = getComputedStyle(r.row);
+  const avoid = [$('ewrObj'), $('camera'), $('tl')].map(e => e.getBoundingClientRect());   // keep clear of the panel, camera controls and timeline
+  let tx, ty, tries = 0;
+  do { tx = innerWidth * (.06 + Math.random() * .88); ty = innerHeight * (.14 + Math.random() * .62); }
+  while (tries++ < 20 && avoid.some(b => tx > b.left - 30 && tx < b.right + 30 && ty > b.top - 30 && ty < b.bottom + 30));
+  const el = document.createElement('div'); el.className = 'loot'; el.title = OBJ[k] + ' frenzy – click to collect';
+  for (const v of ['--c1', '--c2', '--glow']) el.style.setProperty(v, cs.getPropertyValue(v));
+  el.innerHTML = '<span class="lootIn"><svg viewBox="0 0 16 16" aria-hidden="true">' + (THEME_ICON[k] || '') + '</svg></span>';
+  el._pos = [tx, ty]; el._collect = () => lootCollect(el, k); el.onclick = el._collect; lootBox.append(el);
+  const land = `translate(${tx}px,${ty}px) scale(1) rotate(360deg)`;
+  if (REDUCED) el.style.transform = land;
+  else {
+    el.animate([
+      { transform: `translate(${sx}px,${sy}px) scale(.2) rotate(0deg)` },
+      { transform: `translate(${(sx + tx) / 2}px,${Math.min(sy, ty) - 110}px) scale(1.35) rotate(200deg)`, offset: .55 },
+      { transform: land }
+    ], { duration: 850, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
+    for (let i = 0; i < 9; i++) { const sp = document.createElement('i'); sp.className = 'spark'; sp.style.setProperty('--glow', cs.getPropertyValue('--glow')); lootBox.append(sp); const a = i / 9 * Math.PI * 2, d = 26 + Math.random() * 22;
+      sp.animate([{ transform: `translate(${sx}px,${sy}px) scale(1)`, opacity: 1 }, { transform: `translate(${sx + Math.cos(a) * d}px,${sy + Math.sin(a) * d}px) scale(0)`, opacity: 0 }], { duration: 650, easing: 'ease-out', fill: 'forwards' }).onfinish = () => sp.remove(); }
+  }
+  setTimeout(() => el.classList.add('idle'), 850);
+  el._t = setTimeout(el._collect, 6000);
+}
+function ewrObjUpdate(day, hit, bad, celebrate) {
   const i = Math.max(0, Math.min(N - 1, day));
   for (const k of objKeys) {
     const v = objVal[ewrScope][k][i], r = objRows[k], has = !!objHas[ewrScope][k] && !isNaN(v);
     r.trk.hidden = !has; r.dash.hidden = has;   // a dash where this SDL unit has no EWRs mapped to the theme, or no score yet (first year of record)
     r.fill.style.width = barPct(v);  r.lost.style.width = barPct(objGross[ewrScope][k][i]);   // the red tail is the score lost to inter-event overruns
-    r.row.classList.toggle('max', v >= OBJ_MAX);
+    const isMax = v >= OBJ_MAX; r.row.classList.toggle('max', isMax);
+    if (celebrate && isMax && !spawned[k]) { spawned[k] = true; lootSpawn(k); }   // the first frenzy in a theme pops out its collectable
+    prevMax[k] = isMax;
     if (hit?.has(k)) { r.row.classList.remove('hit'); void r.row.offsetWidth; r.row.classList.add('hit'); }
   }
 }
-$('ewrToggle').onchange = e => { ewrShown = e.target.checked; $('ewrObj').hidden = !ewrShown; document.body.classList.toggle('ewrOn', ewrShown); if (!ewrShown) { ewrFx.replaceChildren(); ewrLive.clear(); } else ewrObjDirty = true; };
+$('ewrToggle').onchange = e => { ewrShown = e.target.checked; $('ewrObj').hidden = !ewrShown; document.body.classList.toggle('ewrOn', ewrShown); if (!ewrShown) { ewrFx.replaceChildren(); ewrLive.clear(); lootBox.replaceChildren(); } else ewrObjDirty = true; };
 let lastDraw=0;
 function loop(now) {
   const dt=Math.min(.1,(now-last)/1000); last=now;
