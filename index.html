@@ -12,8 +12,8 @@
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden; font-family:var(--mono); }
   button,input { font:inherit; } button { color:inherit; cursor:pointer; } button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:2px solid #287b90; outline-offset:4px; }
   #map { position:absolute; inset:0; z-index:0; } .abs { position:absolute; z-index:2; }
-  #head { top:16px; left:18px; max-width:440px; pointer-events:none; z-index:2; }
-  #head h1 { font:500 clamp(30px,3vw,49px)/1.04 var(--serif); margin:0 0 13px; letter-spacing:-.035em; max-width:440px; }
+  #head { top:16px; left:18px; max-width:650px; pointer-events:none; z-index:2; }
+  #head h1 { font:500 clamp(30px,3vw,49px)/1.04 var(--serif); margin:0 0 13px; letter-spacing:-.035em; max-width:650px; }
   #head .kick { font-size:11px; letter-spacing:.17em; line-height:1.8; text-transform:uppercase; margin-bottom:9px; }
   #head p { font:400 14px/1.6 'Helvetica Neue',Arial,sans-serif; color:var(--dim); margin:0; max-width:405px; }
   #region { display:inline-flex; align-items:center; gap:14px; margin-top:18px; padding:0 0 6px; border:0; border-bottom:1px solid #647e96; background:none; font-size:10px; letter-spacing:.13em; pointer-events:auto; }
@@ -38,9 +38,9 @@
   #foot { left:18px; right:18px; bottom:10px; font-size:9px; letter-spacing:.035em; color:var(--dim); display:flex; justify-content:space-between; align-items:flex-end; gap:20px; } #variance { flex-shrink:0; font:11px/1.4 Arial,sans-serif; } #variance strong { font:500 32px var(--serif); color:var(--ink); margin-right:6px; } #jumpPeak { background:none; border:0; border-bottom:1px solid #6a8097; padding:0 0 3px; font-size:9px; letter-spacing:.06em; color:var(--dim); margin-left:16px; } #credits { text-align:right; font-size:8px; line-height:1.8; max-width:55%; } #credits a { color:inherit; text-decoration:none; border-bottom:1px solid #6a809755; }
   #tip { position:absolute; display:none; pointer-events:none; background:rgba(250,247,242,.97); padding:12px 15px; border:1px solid #d7d1c8; border-radius:7px; font:12px/1.5 Arial,sans-serif; box-shadow:0 3px 10px #26394c25; z-index:9; min-width:205px; max-width:280px; } #tip h2 { font:500 19px/1.2 var(--serif); margin:0 0 7px; } #tip .value { font:500 26px/1.1 var(--serif); } #tip .value small { font:12px Arial,sans-serif; color:var(--dim); } #tip .detail { color:#74716c; margin-top:6px; font-size:11px; }
   #err { position:absolute; inset:0; display:none; place-items:center; font:18px var(--serif); text-align:center; padding:40px; z-index:20; background:var(--bg); } .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left { display:none; }
-  @media (min-width:1800px) { #head { max-width:520px; } #head h1 { max-width:520px; } #tl { bottom:64px; height:100px; } #date { bottom:185px; } }
+  @media (min-width:1800px) { #head { max-width:760px; } #head h1 { max-width:760px; } #tl { bottom:64px; height:100px; } #date { bottom:185px; } }
   @media (max-height:760px) and (min-width:761px) { #camera { top:14%; transform:scale(.83); transform-origin:top right; } #date { bottom:153px; } #flowBox,#legend { bottom:148px; } #units { bottom:170px; } #tl { bottom:50px; height:78px; } #foot { bottom:8px; } #head h1 { font-size:38px; } }
-  @media (max-width:1050px) { #head { max-width:350px; } #head h1 { font-size:37px; } #head p { font-size:12px; max-width:320px; } #flowBox { right:330px; width:180px; } #legend { right:120px; width:175px; } #units { right:14px; } #credits .keys { display:none; } #variance { font-size:10px; } }
+  @media (max-width:1050px) { #head { max-width:min(600px,calc(100% - 100px)); } #head h1 { font-size:37px; } #head p { font-size:12px; max-width:320px; } #flowBox { right:330px; width:180px; } #legend { right:120px; width:175px; } #units { right:14px; } #credits .keys { display:none; } #variance { font-size:10px; } }
   @media (max-width:760px) { #head { top:18px; left:14px; max-width:calc(100% - 28px); } #head h1 { font-size:30px; max-width:340px; margin-bottom:9px; } #head .kick { font-size:8px; letter-spacing:.12em; } #head p { display:none; } #region { font-size:9px; margin-top:8px; } #pill { left:14px; top:auto; bottom:236px; font-size:9px; padding:7px 9px; } #drawer { left:14px; top:auto; bottom:275px; max-height:40vh; width:min(320px,calc(100% - 28px)); } #gaugeList { max-height:calc(40vh - 65px); } #date { left:14px; bottom:158px; font-size:24px; max-width:170px; } #flowBox { right:14px; bottom:158px; width:155px; font-size:8px; } #flowBox .big { font-size:25px; } #flowSub { font-size:8px; } #legend { left:14px; right:auto; bottom:115px; width:145px; font-size:8px; } #legend .bar { height:6px; margin:4px 0; } #legend .r { font-size:8px; } #missing { display:none; } #units { right:14px; bottom:120px; } #units button { padding:6px 10px; font-size:9px; } #camera { right:14px; top:auto; bottom:235px; transform:none; } #nav { display:flex; gap:5px; } #nav button { display:none; } #nav button[data-a=zin],#nav button[data-a=zout],#nav button[data-a=reset] { display:grid; width:30px; height:30px; } #nav button[data-a=reset] { width:48px; font-size:8px; } #reliefBox { display:none; } #tl { left:14px; right:14px; bottom:33px; height:60px; gap:8px; } #play { width:35px; height:35px; font-size:14px; } #replay { width:27px; height:27px; font-size:17px; } #spd { width:32px; height:27px; font-size:9px; } #foot { left:14px; right:14px; bottom:9px; } #variance { display:none; } #credits { max-width:100%; font-size:7px; text-align:left; } #tip { min-width:160px; max-width:220px; } #bar { height:280px; }
   }
   @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; } }
@@ -53,8 +53,8 @@
 
 <header class="abs" id="head">
   <h1>Murray–Darling’s River Pulse</h1>
-  <div class="kick">Observed rivers · 2026–27 water year</div>
-  <p>Height is daily mean discharge. Width is the monthly mean.<br>Colour is daily mean water temperature.</p>
+  <div class="kick">Every river, every day since July 2025</div>
+  <p>Height is that day’s discharge. Width is the river’s monthly mean.<br>Colour is water temperature.</p>
   <button id="region" aria-expanded="false" aria-controls="regionMenu">MURRAY–DARLING BASIN <span>▾</span></button>
   <div id="regionMenu" hidden><p>BoM daily mean discharge, level and temperature, using midnight-to-midnight days in each station’s standard time, carried along nearby river reaches. Between gauges, values are estimates. Grey-blue reaches have no temperature reading; width uses the available monthly mean. The timeline stops at the last interval with at least 90% of peak gauge coverage.</p></div>
 </header>
@@ -110,9 +110,8 @@ const coverageMax=Math.max(...coverage,1);
 const lastCovered=coverage.reduce((last,n,i)=>n>=coverageMax*.9?i:last,-1);
 const N=lastCovered>=1?lastCovered+1:meta.n;
 const t0 = new Date(meta.start);
-const periodStart=t0.toLocaleDateString('en-AU',{month:'short',year:'numeric',timeZone:'Australia/Sydney'});
-const periodEnd=new Date(t0.getTime()+(N-1)*STEP*3600e3).toLocaleDateString('en-AU',{month:'short',year:'numeric',timeZone:'Australia/Sydney'});
-document.querySelector('#head .kick').textContent='Daily means · '+periodStart+(periodEnd!==periodStart?' – '+periodEnd:'');
+const periodStart=t0.toLocaleDateString('en-AU',{month:'long',year:'numeric',timeZone:'Australia/Sydney'});
+document.querySelector('#head .kick').textContent='Every river, every day since '+periodStart;
 
 // ---------- helpers ----------
 const ML_TO_CMS = 1 / 86.4;
@@ -229,7 +228,6 @@ function render() {
   if (mk !== curMonth) { curMonth = mk; chunks.forEach((d, i) => { const sh = shape(d.path, d.g, d.w, mk); d.ring = sh.ring; d.mean = sh.mean; }); }
   stats = updateValues(); dirty = false;
   overlay.setProps({ layers:[
-    new deck.PathLayer({ id:'basin', data:[R.boundary], getPath:d=>d, getColor:[35,38,43,95], getWidth:1.2, widthUnits:'pixels', jointRounded:true, pickable:false }),
     new deck.PathLayer({id:'network',data:chunks,getPath:d=>d.path.map(p=>[p[0],p[1],d.h]),getColor:d=>d.col,getWidth:1.1,widthUnits:'pixels',widthMinPixels:.7,jointRounded:true,pickable:true,autoHighlight:true,highlightColor:[255,247,224,100],updateTriggers:{getPath:[frac,relief],getColor:frac}}),
     new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief,getWidth:curMonth} }),
     new deck.SolidPolygonLayer({ id:'rivers', data:chunks, getPolygon:d=>d.ring, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col,
