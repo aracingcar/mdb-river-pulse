@@ -12,10 +12,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 BASE = "https://www.bom.gov.au/waterdata/services"
 PARAM = "http://bom.gov.au/waterdata/services/parameters/"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
-PROPS = {"flow": "Water Course Discharge", "level": "Water Course Level", "temp": "Water Temperature"}
-PROCEDURES = {"Water Course Discharge": "Pat4_C_B_1", "Water Course Level": "Pat3_C_B_1", "Water Temperature": "Pat1_C_B_1"}
+PROPS = {"flow": "Water Course Discharge", "level": "Water Course Level", "temp": "Water Temperature",
+         "svol": "Storage Volume", "slevel": "Storage Level"}
+PROCEDURES = {"Water Course Discharge": "Pat4_C_B_1", "Water Course Level": "Pat3_C_B_1", "Water Temperature": "Pat1_C_B_1",
+               "Storage Volume": "Pat6_P_1", "Storage Level": "Pat7_P_1"}
 TZ = dt.timezone(dt.timedelta(hours=10))   # AEST, as BoM reports
-RAW = re.compile(r'tstypes/Pat\d_C_B_1"')  # raw merged series (not hourly/daily aggregates)
+RAW = re.compile(r'tstypes/Pat\d_(C_B|P)_1"')  # raw merged series (not hourly/daily aggregates)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS stations(id TEXT PRIMARY KEY, name TEXT, lat REAL, lon REAL);
@@ -84,6 +86,7 @@ def work(job, daily_means=False):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--stations", required=True); ap.add_argument("--db", default="data/river.db")
+    ap.add_argument("--props", default="flow,level,temp", help="comma list from: " + ",".join(PROPS))
     ap.add_argument("--backfill", action="store_true", help="fetch exactly [from,to] for (station,param) pairs that already have data, ignoring stored max ts")
     ap.add_argument("--resume", action="store_true", help="skip previously completed backfill request windows")
     ap.add_argument("--include-known-stations", action="store_true", help="also backfill stations already holding observations in the database")
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     end = dt.datetime.fromisoformat(a.t1).replace(tzinfo=TZ) + dt.timedelta(days=1) - dt.timedelta(minutes=1)
     jobs = []
     for sid, *_ in stations:
-        for key in PROPS:
+        for key in a.props.split(","):
             last = db.execute(f"SELECT MAX(ts) FROM {observations} WHERE station=? AND param=?", (sid, key)).fetchone()[0]
             if a.backfill:
                 if last is None and (not a.daily_means or not db.execute("SELECT 1 FROM obs WHERE station=? AND param=? LIMIT 1", (sid,key)).fetchone()): continue
