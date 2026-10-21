@@ -1,0 +1,230 @@
+{
+  "waterYear": "2019\u20132020",
+  "start": "2019-07-01",
+  "end": "2020-06-30",
+  "exportTo": "2026-10-21",
+  "aggregation": "BoM DailyMean.24HR",
+  "dayTimezone": "station-local standard time (AEST/ACST), grouped by calendar date",
+  "status": "complete",
+  "months": [
+    {
+      "start": "2019-07-01",
+      "end": "2019-07-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 235,
+          "observations": 7249
+        },
+        "level": {
+          "stationsWithData": 308,
+          "observations": 9518
+        },
+        "temp": {
+          "stationsWithData": 153,
+          "observations": 4630
+        }
+      }
+    },
+    {
+      "start": "2019-08-01",
+      "end": "2019-08-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 7237
+        },
+        "level": {
+          "stationsWithData": 307,
+          "observations": 9499
+        },
+        "temp": {
+          "stationsWithData": 154,
+          "observations": 4609
+        }
+      }
+    },
+    {
+      "start": "2019-09-01",
+      "end": "2019-09-30",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 6993
+        },
+        "level": {
+          "stationsWithData": 307,
+          "observations": 9176
+        },
+        "temp": {
+          "stationsWithData": 149,
+          "observations": 4343
+        }
+      }
+    },
+    {
+      "start": "2019-10-01",
+      "end": "2019-10-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 235,
+          "observations": 7228
+        },
+        "level": {
+          "stationsWithData": 309,
+          "observations": 9524
+        },
+        "temp": {
+          "stationsWithData": 145,
+          "observations": 4405
+        }
+      }
+    },
+    {
+      "start": "2019-11-01",
+      "end": "2019-11-30",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 6979
+        },
+        "level": {
+          "stationsWithData": 308,
+          "observations": 9236
+        },
+        "temp": {
+          "stationsWithData": 153,
+          "observations": 4408
+        }
+      }
+    },
+    {
+      "start": "2019-12-01",
+      "end": "2019-12-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 7198
+        },
+        "level": {
+          "stationsWithData": 311,
+          "observations": 9588
+        },
+        "temp": {
+          "stationsWithData": 149,
+          "observations": 4273
+        }
+      }
+    },
+    {
+      "start": "2020-01-01",
+      "end": "2020-01-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 7194
+        },
+        "level": {
+          "stationsWithData": 311,
+          "observations": 9553
+        },
+        "temp": {
+          "stationsWithData": 146,
+          "observations": 4207
+        }
+      }
+    },
+    {
+      "start": "2020-02-01",
+      "end": "2020-02-29",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 6740
+        },
+        "level": {
+          "stationsWithData": 310,
+          "observations": 8939
+        },
+        "temp": {
+          "stationsWithData": 159,
+          "observations": 4286
+        }
+      }
+    },
+    {
+      "start": "2020-03-01",
+      "end": "2020-03-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 234,
+          "observations": 7232
+        },
+        "level": {
+          "stationsWithData": 310,
+          "observations": 9606
+        },
+        "temp": {
+          "stationsWithData": 166,
+          "observations": 4951
+        }
+      }
+    },
+    {
+      "start": "2020-04-01",
+      "end": "2020-04-30",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 235,
+          "observations": 7019
+        },
+        "level": {
+          "stationsWithData": 311,
+          "observations": 9285
+        },
+        "temp": {
+          "stationsWithData": 172,
+          "observations": 5046
+        }
+      }
+    },
+    {
+      "start": "2020-05-01",
+      "end": "2020-05-31",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 236,
+          "observations": 7306
+        },
+        "level": {
+          "stationsWithData": 310,
+          "observations": 9549
+        },
+        "temp": {
+          "stationsWithData": 172,
+          "observations": 5276
+        }
+      }
+    },
+    {
+      "start": "2020-06-01",
+      "end": "2020-06-30",
+      "parameters": {
+        "flow": {
+          "stationsWithData": 239,
+          "observations": 7116
+        },
+        "level": {
+          "stationsWithData": 311,
+          "observations": 9290
+        },
+        "temp": {
+          "stationsWithData": 175,
+          "observations": 5146
+        }
+      }
+    }
+  ],
+  "completedRequests": 800,
+  "emptyResponses": 69,
+  "completedAt": "2026-10-21T08:07:54.415460+00:00"
+}
