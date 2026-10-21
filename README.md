@@ -2,7 +2,7 @@
 
 An interactive river map inspired by [mapped.earth’s River Pulse](https://mapped.earth/river-pulse/), using Bureau of Meteorology Water Data Online observations and OpenStreetMap waterways.
 
-River height represents discharge, width uses the available October mean, and colour represents water temperature. Values between gauges are estimates. Grey-blue reaches have no temperature observation. Combined gauge totals include upstream gauges and do not represent basin outflow.
+River height represents discharge, width uses the mean over the available observations, and colour represents water temperature. Values between gauges are estimates. Grey-blue reaches have no temperature observation. Combined gauge totals include upstream gauges and do not represent basin outflow.
 
 ## View the site
 

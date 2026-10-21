@@ -53,14 +53,14 @@
 
 <header class="abs" id="head">
   <h1>Murray–Darling’s River Pulse</h1>
-  <div class="kick">Observed rivers · October 2026</div>
-  <p>Height is discharge. Width is the river’s October mean.<br>Colour is water temperature.</p>
+  <div class="kick">Observed rivers · 2026–27 water year</div>
+  <p>Height is discharge. Width is the river’s monthly mean.<br>Colour is water temperature.</p>
   <button id="region" aria-expanded="false" aria-controls="regionMenu">MURRAY–DARLING BASIN <span>▾</span></button>
-  <div id="regionMenu" hidden><p>BoM gauge observations carried along nearby river reaches. Between gauges, values are estimates. Grey-blue reaches have no temperature reading; width uses the available October mean. The timeline stops at the last interval with at least 90% of peak gauge coverage.</p></div>
+  <div id="regionMenu" hidden><p>BoM gauge observations carried along nearby river reaches. Between gauges, values are estimates. Grey-blue reaches have no temperature reading; width uses the available monthly mean. The timeline stops at the last interval with at least 90% of peak gauge coverage.</p></div>
 </header>
 <button class="abs" id="pill" aria-expanded="false" aria-controls="drawer"><span id="pillTxt">Loading rivers</span><span id="pillArrow">▸</span></button>
 <section id="drawer" hidden aria-label="Find a gauge"><input id="search" type="search" placeholder="Find a river or gauge…" aria-label="Search gauges"><div id="gaugeList"></div></section>
-<div class="abs" id="date">October 2026</div>
+<div class="abs" id="date">—</div>
 <section class="abs" id="flowBox" aria-label="Combined gauge discharge">
   <div>Reporting gauges combined</div>
   <div class="big"><span id="flowNow">—</span> <small id="flowU">m³/s</small></div>
@@ -110,6 +110,9 @@ const coverageMax=Math.max(...coverage,1);
 const lastCovered=coverage.reduce((last,n,i)=>n>=coverageMax*.9?i:last,-1);
 const N=lastCovered>=1?lastCovered+1:meta.n;
 const t0 = new Date(meta.start);
+const periodStart=t0.toLocaleDateString('en-AU',{month:'short',year:'numeric',timeZone:'Australia/Sydney'});
+const periodEnd=new Date(t0.getTime()+(N-1)*STEP*3600e3).toLocaleDateString('en-AU',{month:'short',year:'numeric',timeZone:'Australia/Sydney'});
+document.querySelector('#head .kick').textContent='Observed rivers · '+periodStart+(periodEnd!==periodStart?' – '+periodEnd:'');
 
 // ---------- helpers ----------
 const ML_TO_CMS = 1 / 86.4;
@@ -132,20 +135,32 @@ function ramp(t) {
 
 // ---------- geometry: buffer each river chunk into a thin polygon ----------
 const flowMean = g => { const a = g.flow; if (!a) return 0; let s = 0, n = 0; for (const v of a) if (v != null) { s += v; n++; } return n ? s / n : 0; };
-gauges.forEach(g => { g.fm = flowMean(g); });
+// month of each time bin (Sydney time) and each gauge's mean flow within that month
+const monthKey = f => new Date(t0.getTime() + Math.round(f) * STEP * 3600e3).toLocaleDateString('en-CA', { year:'numeric', month:'2-digit', timeZone:'Australia/Sydney' });
+const binMonth = Array.from({ length:N }, (_, i) => monthKey(i)), monthList = [...new Set(binMonth)];
+const monthName = k => new Date(k + '-15').toLocaleDateString('en-AU', { month:'long', timeZone:'UTC' });
+gauges.forEach(g => {
+  g.fmM = {};
+  for (const m of monthList) { let sum = 0, n = 0; if (g.flow) for (let i = 0; i < N; i++) if (binMonth[i] === m && g.flow[i] != null) { sum += g.flow[i]; n++; } g.fmM[m] = n ? sum / n : 0; }
+});
 let lvRange = gauges.map(g => { if (!g.level) return null; const v = g.level.filter(x => x != null); return v.length ? [Math.min(...v), Math.max(...v)] : null; });
 
-const chunks = rivers.map(r => {
-  const c = r.c, k = Math.cos(c[0][1] * Math.PI / 180);
-  let fm = 0; r.g.forEach((gi, q) => fm += gauges[gi].fm * r.w[q]);
-  const wd = r.g.length ? 0.0014 + 0.0032 * Math.log10(1 + Math.max(0, fm)) : 0.0007;      // visual half-width, scaled by the observed October mean
+function shape(c, g, w, mk) {
+  const k = Math.cos(c[0][1] * Math.PI / 180);
+  let fm = 0; g.forEach((gi, q) => fm += gauges[gi].fmM[mk] * w[q]);
+  const wd = g.length ? 0.0014 + 0.0032 * Math.log10(1 + Math.max(0, fm)) : 0.0007;      // visual half-width, scaled by the river's mean for the current month
   const L = [], Rr = [];
   for (let i = 0; i < c.length; i++) {
     const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)];
     let dx = (b[0] - a[0]) * k, dy = b[1] - a[1]; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
     L.push([c[i][0] - dy * wd / k, c[i][1] + dx * wd]); Rr.push([c[i][0] + dy * wd / k, c[i][1] - dx * wd]);
   }
-  return { ring:[...L, ...Rr.reverse()], path:c, g:r.g, w:r.w, mean:fm, h:0, col:[94,117,134,180], flow:NaN, temp:NaN, lat:c[0][1], lon:c[0][0] };
+  return { ring:[...L, ...Rr.reverse()], mean:fm };
+}
+let curMonth = binMonth[0];
+const chunks = rivers.map(r => {
+  const sh = shape(r.c, r.g, r.w, curMonth), c = r.c;
+  return { ring:sh.ring, path:c, g:r.g, w:r.w, mean:sh.mean, h:0, col:[94,117,134,180], flow:NaN, temp:NaN, lat:c[0][1], lon:c[0][0] };
 });
 const gaugePts = gauges.map((g, i) => ({ i, g, pos:[g.lon, g.lat] }));
 
@@ -199,7 +214,7 @@ function showTip(info) {
   const value = document.createElement('div'); value.className='value'; value.textContent = isNaN(c.flow) ? '— ' : fmtFlow(c.flow) + ' ';
   const unit = document.createElement('small'); unit.textContent = flowUnit(); value.append(unit);
   const detail = document.createElement('div'); detail.className='detail';
-  const pct = c.mean > 0 && !isNaN(c.flow) ? Math.round(c.flow / c.mean * 100) + '% of October mean' : 'No discharge observation';
+  const pct = c.mean > 0 && !isNaN(c.flow) ? Math.round(c.flow / c.mean * 100) + '% of ' + monthName(curMonth) + ' mean' : 'No discharge observation';
   detail.textContent = pct + ' · ' + (isNaN(c.temp) ? 'temperature unavailable' : c.temp.toFixed(1) + ' °C');
   const source = document.createElement('div'); source.className='detail'; source.textContent=near ? 'Estimated reach · nearest gauge ' + near.id : 'No gauge nearby';
   tip.append(name,value,detail,source); tip.style.display='block';
@@ -207,13 +222,15 @@ function showTip(info) {
   tip.style.top = Math.max(8,Math.min(info.y+14,innerHeight-tip.offsetHeight-10))+'px';
 }
 function render() {
+  const mk = binMonth[Math.max(0, Math.min(N - 1, Math.round(frac)))];
+  if (mk !== curMonth) { curMonth = mk; chunks.forEach((d, i) => { const sh = shape(d.path, d.g, d.w, mk); d.ring = sh.ring; d.mean = sh.mean; }); }
   stats = updateValues(); dirty = false;
   overlay.setProps({ layers:[
     new deck.PathLayer({id:'network',data:chunks,getPath:d=>d.path.map(p=>[p[0],p[1],d.h]),getColor:d=>d.col,getWidth:1.1,widthUnits:'pixels',widthMinPixels:.7,jointRounded:true,pickable:true,autoHighlight:true,highlightColor:[255,247,224,100],updateTriggers:{getPath:[frac,relief],getColor:frac}}),
-    new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief} }),
+    new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief,getWidth:curMonth} }),
     new deck.SolidPolygonLayer({ id:'rivers', data:chunks, getPolygon:d=>d.ring, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col,
       material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true,
-      autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getElevation:[frac,relief],getFillColor:frac} })
+      autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getPolygon:curMonth,getElevation:[frac,relief],getFillColor:frac} })
   ], pickingRadius:6, onHover:info=>{showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:showTip });
   $('date').textContent = dateLabel(frac);
   $('timeline').value = frac;
