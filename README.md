@@ -59,3 +59,13 @@ python3 scripts/build_data.py --from 2012-07-01 --to 2026-10-21
 ```
 
 The raw OpenStreetMap response and tile cache are excluded from Git; the processed outlines and generated viewer bundle are committed.
+
+## Environmental watering requirements (EWR)
+
+`scripts/run_ewr.py` assesses the daily series in `data/data.js` against the MDBA EWR parameter sheet using [py_ewr](https://github.com/MDBAuth/EWR_tool) (the EWR tool). Only gauges present in both the sheet and this dataset are assessed. It writes `data/ewr-events.js` (successful events for the viewer) and the `ewr_events` and `ewr_summary` tables in `data/river.db`.
+
+```sh
+python3 scripts/run_ewr.py   # needs py_ewr, pandas, numpy
+```
+
+In the viewer, a green `+CODE` (for example `+SF1`) rises above a gauge on the day a successful event qualifies (start of event plus the EWR's minimum duration) while the timeline plays. The **EWR events** checkbox turns this off.
