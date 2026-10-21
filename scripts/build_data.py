@@ -75,9 +75,29 @@ for b in wb:
     cand.sort()
     lakes.append({"n": b["name"], "a": b["area"], "r": b["ring"], "g": [i for _, _, i in cand[:4]]})
 print(len(lakes), "water bodies;", sum(1 for l in lakes if l["g"]), "with a nearby gauge")
+# Ramsar wetland boundaries (SA DEW): the Coorong and Lakes Alexandrina & Albert, plus Murray wetlands inside the basin
+import math as _m
+def _simp(r, d=0.0015):
+    o = [r[0]]
+    for p in r[1:-1]:
+        if _m.hypot(p[0] - o[-1][0], p[1] - o[-1][1]) >= d: o.append(p)
+    return o + [r[-1]]
+wetlands = []
+for ft in json.load(open("data/ramsar_sa.geojson"))["features"]:
+    nm = ft["properties"]["WETLAND"]
+    if nm not in ("Coorong and Lakes Alexandrina and Albert", "Riverland", "Banrock Station Wetland Complex"): continue
+    g = ft["geometry"]; polys = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]
+    for poly in polys:
+        wetlands.append({"n": nm, "p": [[[round(x, 4), round(y, 4)] for x, y in _simp(ring)] for ring in poly]})
+print(len(wetlands), "wetland polygons")
+# total barrage releases to the Coorong / Murray Mouth (SA DEW, ML/day): daily value held across that day's bins
+barrage = [None] * n
+for ts, v in db.execute("SELECT ts,value FROM obs WHERE station='A4261002' AND param='barrage' AND ts>=? AND ts<?", (t0 - 86400, t0 + n * S)):
+    for b in range(max(0, (ts - t0) // S), min(n, (ts - t0) // S + 86400 // S)): barrage[b] = round(v, 1)
+print("barrage releases:", sum(v is not None for v in barrage), "of", n, "bins")
 meta = {"start": start.isoformat(), "step": a.step, "n": n, "aggregation":"daily_mean", "source":"BoM DMQaQc.Merged.DailyMean.24HR", "dayTimezone":"station-local standard time (AEST/ACST), grouped by calendar date", "storageAggregation":"daily arithmetic mean of available raw BoM storage observations", "storageSource":"BoM Storage Volume / Storage Level"}
 output = Path("data/data.js")
 temporary = output.with_suffix(".js.tmp")
-temporary.write_text("window.RIVERDATA=" + json.dumps({"meta": meta, "gauges": sts, "rivers": rivers, "lakes": lakes, "boundary": [[round(x, 3), round(y, 3)] for x, y in bnd]}, separators=(",", ":")) + ";")
+temporary.write_text("window.RIVERDATA=" + json.dumps({"meta": meta, "gauges": sts, "rivers": rivers, "lakes": lakes, "wetlands": wetlands, "barrage": {"pos": [138.8873, -35.5592], "v": barrage}, "boundary": [[round(x, 3), round(y, 3)] for x, y in bnd]}, separators=(",", ":")) + ";")
 temporary.replace(output)
 print("wrote data/data.js", sum(1 for r in rivers if r["g"]), "of", len(rivers), "chunks linked")

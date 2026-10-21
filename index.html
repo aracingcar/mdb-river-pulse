@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Murray–Darling River Pulse</title>
+<!-- Favicons -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#0B2447">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -44,6 +52,7 @@
   @media (max-width:760px) { #head { top:18px; left:14px; max-width:calc(100% - 28px); } #head h1 { font-size:30px; max-width:340px; margin-bottom:9px; } #head .kick { font-size:8px; letter-spacing:.12em; } #head p { display:none; } #region { font-size:9px; margin-top:8px; } #pill { left:14px; top:auto; bottom:236px; font-size:9px; padding:7px 9px; } #drawer { left:14px; top:auto; bottom:275px; max-height:40vh; width:min(320px,calc(100% - 28px)); } #gaugeList { max-height:calc(40vh - 65px); } #date { left:14px; bottom:158px; font-size:24px; max-width:170px; } #flowBox { right:14px; bottom:158px; width:155px; font-size:8px; } #flowBox .big { font-size:25px; } #flowSub { font-size:8px; } #legend { left:14px; right:auto; bottom:115px; width:145px; font-size:8px; } #legend .bar { height:6px; margin:4px 0; } #legend .r { font-size:8px; } #missing { display:none; } #units { right:14px; bottom:120px; } #units button { padding:6px 10px; font-size:9px; } #camera { right:14px; top:auto; bottom:235px; transform:none; } #nav { display:flex; gap:5px; } #nav button { display:none; } #nav button[data-a=zin],#nav button[data-a=zout],#nav button[data-a=reset] { display:grid; width:30px; height:30px; } #nav button[data-a=reset] { width:48px; font-size:8px; } #reliefBox { display:none; } #tl { left:14px; right:14px; bottom:33px; height:60px; gap:8px; } #play { width:35px; height:35px; font-size:14px; } #replay { width:27px; height:27px; font-size:17px; } #spd { width:32px; height:27px; font-size:9px; } #foot { left:14px; right:14px; bottom:9px; } #variance { display:none; } #credits { max-width:100%; font-size:7px; text-align:left; } #tip { min-width:160px; max-width:220px; } #bar { height:280px; }
   }
   @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; } }
+  #barrage { left:16px; top:200px; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); pointer-events:none; } #barrage b { display:block; font:400 24px/1.15 var(--serif); letter-spacing:0; text-transform:none; color:var(--ink); margin-top:3px; } #barrage small { font:400 12px var(--serif); letter-spacing:0; text-transform:none; margin-left:4px; }
 </style>
 </head>
 <body>
@@ -61,6 +70,7 @@
 <button class="abs" id="pill" aria-expanded="false" aria-controls="drawer"><span id="pillTxt">Loading rivers</span><span id="pillArrow">▸</span></button>
 <section id="drawer" hidden aria-label="Find a gauge"><input id="search" type="search" placeholder="Find a river or gauge…" aria-label="Search gauges"><div id="gaugeList"></div></section>
 <div class="abs" id="date">—</div>
+<div class="abs" id="barrage"><span>Barrage releases</span><b id="barrageNow">—</b><small id="barrageU">ML/d</small></div>
 <section class="abs" id="flowBox" aria-label="Combined gauge discharge">
   <div>Reporting gauges combined</div>
   <div class="big"><span id="flowNow">—</span> <small id="flowU">m³/s</small></div>
@@ -191,6 +201,9 @@ function updateLakes() {
     l.col = isNaN(l.fill) ? [78,104,134,215] : isNaN(l.temp) ? [34,82,124,240] : [...ramp(l.temp), 240];
   }
 }
+const BARR = R.barrage || { pos:[138.8873,-35.5592], v:[] };
+const barrMax = Math.max(1, ...BARR.v.filter(v => v != null));
+const barrNow = () => samp(BARR.v, frac);
 const gaugePts = gauges.map((g, i) => ({ i, g, pos:[g.lon, g.lat] }));
 
 // ---------- map ----------
@@ -248,7 +261,9 @@ function showLakeTip(info) {
   tip.style.left = Math.max(8, Math.min(info.x + 14, innerWidth - tip.offsetWidth - 10)) + 'px';
   tip.style.top = Math.max(8, Math.min(info.y + 14, innerHeight - tip.offsetHeight - 10)) + 'px';
 }
+const ML_TO_CMS_B = 1 / 86.4;
 function showTip(info) {
+  if (info.object && info.layer?.id === 'barrage') { tip.replaceChildren(); const h = document.createElement('h2'); h.textContent = 'Barrage releases to the Coorong & Murray Mouth'; const v = document.createElement('div'); v.className = 'value'; v.textContent = (useCms ? Math.round(info.object.v * ML_TO_CMS_B) : Math.round(info.object.v)).toLocaleString('en-AU') + ' ' + (useCms ? 'm³/s' : 'ML/d'); const d = document.createElement('div'); d.className = 'detail'; d.textContent = 'All five barrages combined · SA DEW calculated flow'; tip.append(h, v, d); tip.style.display = 'block'; tip.style.left = Math.max(8, Math.min(info.x + 14, innerWidth - tip.offsetWidth - 10)) + 'px'; tip.style.top = Math.max(8, Math.min(info.y + 14, innerHeight - tip.offsetHeight - 10)) + 'px'; return; }
   if (info.object && info.layer?.id === 'lakes') return showLakeTip(info);
   const c = info.object;
   if (!c || !['rivers','network'].includes(info.layer?.id)) { tip.style.display='none'; return; }
@@ -271,8 +286,11 @@ function render() {
   const mk = binMonth[Math.max(0, Math.min(N - 1, Math.floor(frac)))];
   if (mk !== curMonth) { curMonth = mk; chunks.forEach((d, i) => { const sh = shape(d.path, d.g, d.w, mk); d.ring = sh.ring; d.mean = sh.mean; }); }
   updateLakes();
+  { const b = barrNow(); $('barrageNow').textContent = isNaN(b) ? '—' : (useCms ? Math.round(b * ML_TO_CMS_B).toLocaleString('en-AU') : Math.round(b).toLocaleString('en-AU')); $('barrageU').textContent = useCms ? 'm³/s' : 'ML/d'; }
   stats = updateValues(); dirty = false;
   overlay.setProps({ layers:[
+    new deck.PolygonLayer({ id:'wetlands', data:R.wetlands||[], getPolygon:d=>d.p, extruded:false, getFillColor:[64,112,128,70], getLineColor:[40,84,100,200], stroked:true, lineWidthUnits:'pixels', getLineWidth:1.2, pickable:false }),
+    new deck.ColumnLayer({ id:'barrage', data:isNaN(barrNow()) ? [] : [{ pos:BARR.pos, v:barrNow() }], getPosition:d=>d.pos, radius:7000, diskResolution:24, extruded:true, getElevation:d=>2000 + d.v / barrMax * 40000 * relief, getFillColor:[26,92,120,240], pickable:true, material:{ambient:.8,diffuse:.45,shininess:10,specularColor:[40,40,40]}, updateTriggers:{getElevation:[frac,relief]} }),
     new deck.SolidPolygonLayer({ id:'lakes', data:lakes, getPolygon:d=>d.r, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col, material:{ambient:.8,diffuse:.4,shininess:6,specularColor:[30,30,30]}, pickable:true, autoHighlight:true, highlightColor:[255,247,224,90], updateTriggers:{getElevation:[frac,relief],getFillColor:frac} }),
     new deck.PathLayer({id:'network',data:chunks,getPath:d=>d.path.map(p=>[p[0],p[1],d.h]),getColor:d=>d.col,getWidth:1.1,widthUnits:'pixels',widthMinPixels:.7,jointRounded:true,pickable:true,autoHighlight:true,highlightColor:[255,247,224,100],updateTriggers:{getPath:[frac,relief],getColor:frac}}),
     new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief,getWidth:curMonth} }),
