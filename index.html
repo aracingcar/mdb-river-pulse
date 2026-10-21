@@ -56,7 +56,7 @@
   <div class="kick">Every river, every day since July 2025</div>
   <p>Height is that day’s discharge. Width is the river’s monthly mean.<br>Colour is water temperature.</p>
   <button id="region" aria-expanded="false" aria-controls="regionMenu">MURRAY–DARLING BASIN <span>▾</span></button>
-  <div id="regionMenu" hidden><p>BoM daily mean discharge, level and temperature, using midnight-to-midnight days in each station’s standard time, carried along nearby river reaches. Between gauges, values are estimates. Grey-blue reaches have no temperature reading; width uses the available monthly mean. The timeline stops at the last interval with at least 90% of peak gauge coverage.</p></div>
+  <div id="regionMenu" hidden><p>BoM daily mean discharge, level and temperature, using midnight-to-midnight days in each station’s standard time, carried along nearby river reaches. Between gauges, values are estimates. Playback interpolates smoothly between daily readings; missing days stay blank. Grey-blue reaches have no temperature reading; width uses the available monthly mean. The timeline stops at the last interval with at least 90% of peak gauge coverage.</p></div>
 </header>
 <button class="abs" id="pill" aria-expanded="false" aria-controls="drawer"><span id="pillTxt">Loading rivers</span><span id="pillArrow">▸</span></button>
 <section id="drawer" hidden aria-label="Find a gauge"><input id="search" type="search" placeholder="Find a river or gauge…" aria-label="Search gauges"><div id="gaugeList"></div></section>
@@ -87,7 +87,7 @@
 <div class="abs" id="bar"></div>
 <div class="abs" id="tl">
   <button id="play" aria-label="Play" title="Play / pause (space)">▶</button><button id="replay" aria-label="Replay from first day" title="Replay">↺</button>
-  <div id="chartWrap"><canvas id="chart" aria-hidden="true"></canvas><input id="timeline" type="range" min="0" max="1" step="1" value="0" aria-label="Daily mean discharge timeline"></div>
+  <div id="chartWrap"><canvas id="chart" aria-hidden="true"></canvas><input id="timeline" type="range" min="0" max="1" step="0.01" value="0" aria-label="Daily mean discharge timeline"></div>
   <button id="spd" aria-label="Playback speed" title="Change playback speed">1×</button>
 </div>
 <footer class="abs" id="foot">
@@ -120,9 +120,13 @@ const fmtFlow = ml => useCms ? Math.round(ml * ML_TO_CMS).toLocaleString('en-AU'
 const flowUnit = () => useCms ? 'm³/s' : 'ML/d';
 function samp(a, f) {
   if (!a) return NaN;
-  if (meta.aggregation === 'daily_mean') { const v=a[Math.max(0,Math.min(N-1,Math.floor(f)))]; return v==null?NaN:v; }
-  const i = Math.min(N - 1, Math.floor(f)), j = Math.min(i + 1, N - 1), w = f - i, x = a[i], y = a[j];
-  if (x == null) return y == null ? NaN : y; if (y == null) return x; return x + (y - x) * w;
+  const clamped=Math.max(0,Math.min(N-1,f));
+  const i=Math.floor(clamped), j=Math.min(i+1,N-1), w=clamped-i;
+  const x=a[i], y=a[j];
+  if (x==null || !Number.isFinite(x)) return NaN;
+  // Hold a valid day before a gap; never bridge a missing day.
+  if (j===i || w===0 || y==null || !Number.isFinite(y)) return x;
+  return x+(y-x)*w;
 }
 const T_LO = 12, T_HI = 26;
 $('tLo').textContent = T_LO + ' °C'; $('tHi').textContent = T_HI + ' °C';
@@ -233,9 +237,9 @@ function render() {
     new deck.SolidPolygonLayer({ id:'rivers', data:chunks, getPolygon:d=>d.ring, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col,
       material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true,
       autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getPolygon:curMonth,getElevation:[frac,relief],getFillColor:frac} })
-  ], pickingRadius:6, onHover:info=>{showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:showTip });
+  ], pickingRadius:6, onHover:info=>{hover=info;showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:info=>{hover=info;showTip(info);} });
   $('date').textContent = dateLabel(frac);
-  $('timeline').value = meta.aggregation==='daily_mean'?Math.floor(frac):frac;
+  $('timeline').value = frac;
   $('timeline').setAttribute('aria-valuetext',dateLabel(frac)+' · '+fmtFlow(samp(totSeries,frac))+' '+flowUnit());
   const cur = samp(totSeries,frac);
   $('flowNow').textContent=fmtFlow(cur); $('flowU').textContent=flowUnit();
@@ -243,6 +247,7 @@ function render() {
   $('flowSub').textContent=stats.nf+' flow · '+stats.nt+' temperature gauges';
   $('pillTxt').textContent=gauges.length+' gauges · '+rivers.length.toLocaleString('en-AU')+' reaches';
   drawChart();
+  if(hover?.object) showTip(hover);
 }
 const minTot = Math.min(...totSeries.filter(v=>v>0));
 $('ratio').textContent = Number.isFinite(minTot) ? (maxTot/minTot).toFixed(1)+'×' : '—';
@@ -323,7 +328,7 @@ let lastDraw=0;
 function loop(now) {
   const dt=Math.min(.1,(now-last)/1000); last=now;
   if(playing){frac+=dt*SPEEDS[speedIx]*2.2;if(frac>N-1){frac=N-1;setPlay(false);}dirty=true;}
-  if(dirty && now-lastDraw>40){render();lastDraw=now;}
+  if(dirty && now-lastDraw>=16){render();lastDraw=now;}
   requestAnimationFrame(loop);
 }
 map.on('load',()=>{resetView(0);render();requestAnimationFrame(loop);});

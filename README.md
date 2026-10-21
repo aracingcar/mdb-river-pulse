@@ -2,7 +2,7 @@
 
 An interactive river map inspired by [mapped.earth’s River Pulse](https://mapped.earth/river-pulse/), using Bureau of Meteorology Water Data Online observations and OpenStreetMap waterways.
 
-River height represents daily mean discharge, width uses each river’s monthly mean from the available observations, and colour represents daily mean water temperature. All three metrics (discharge, level, temperature) use BoM’s `DMQaQc.Merged.DailyMean.24HR` series; the viewer holds each day’s reading and leaves missing daily means blank. Values between gauges are estimates. Grey-blue reaches have no temperature observation. Combined gauge totals include upstream gauges and do not represent basin outflow.
+River height represents daily mean discharge, width uses each river’s monthly mean from the available observations, and colour represents daily mean water temperature. All three metrics (discharge, level, temperature) use BoM’s `DMQaQc.Merged.DailyMean.24HR` series; playback interpolates smoothly between adjacent daily means and leaves missing days blank. Values between gauges are estimates. Grey-blue reaches have no temperature observation. Combined gauge totals include upstream gauges and do not represent basin outflow.
 
 ## View the site
 
