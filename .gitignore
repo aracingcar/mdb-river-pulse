@@ -10,3 +10,7 @@ data/*.sqlite*
 data/*.tmp
 
 .backfill/
+
+# Reproducible OpenStreetMap download caches
+data/wb_tiles/
+data/waterbodies_raw.json

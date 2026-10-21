@@ -92,7 +92,7 @@
 </div>
 <footer class="abs" id="foot">
   <div id="variance"><strong id="ratio">—</strong><span title="Combined totals vary with the number of reporting gauges">reported peak to floor</span><button id="jumpPeak" title="Jump to highest combined discharge">peak day →</button></div>
-  <div id="credits"><div class="keys">space plays · ← → step · drag pans · right-drag turns &amp; tilts · wheel zooms · hover a river</div><div>BoM Water Data Online · OpenStreetMap waterways · <a href="https://mapped.earth/river-pulse/" target="_blank" rel="noopener">Inspired by mapped.earth ↗</a></div></div>
+  <div id="credits"><div class="keys">space plays · ← → step · drag pans · right-drag turns &amp; tilts · wheel zooms · hover a river or lake</div><div>BoM Water Data Online · OpenStreetMap waterways · <a href="https://mapped.earth/river-pulse/" target="_blank" rel="noopener">Inspired by mapped.earth ↗</a></div></div>
 </footer>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -128,11 +128,18 @@ function samp(a, f) {
   if (j===i || w===0 || y==null || !Number.isFinite(y)) return x;
   return x+(y-x)*w;
 }
-const T_LO = 12, T_HI = 26;
+// colour range from the observed water temperatures (3rd–97th percentile) so the ramp uses its full contrast
+const _t = gauges.flatMap(g => (g.temp || []).filter(v => v != null)).sort((a, b) => a - b);
+const T_LO = _t.length ? Math.floor(_t[Math.floor(_t.length * .03)]) : 8, T_HI = _t.length ? Math.ceil(_t[Math.floor(_t.length * .97)]) : 26;
 $('tLo').textContent = T_LO + ' °C'; $('tHi').textContent = T_HI + ' °C';
-const RAMP = [[31,127,128],[127,181,154],[234,219,165],[232,160,90],[217,88,42],[140,42,20]];
+
+// dark-to-dark ramp sampled from mapped.earth's river-pulse legend: every stop stays darker than the pale backdrop
+const RAMP = [[29,78,92],[39,95,106],[49,113,120],[58,130,134],[77,146,146],[100,161,157],[124,176,169],[147,185,173],[166,175,149],[186,165,124],[206,156,100],[203,137,84],[196,117,69],[188,97,54],[175,78,43],[153,63,36],[131,48,28],[109,33,21]];
+const NODATA = [58,74,94];
+document.querySelector('#legend .bar').style.background = 'linear-gradient(90deg,' + RAMP.map(c => `rgb(${c})`).join(',') + ')';
+document.head.insertAdjacentHTML('beforeend', `<style>#missing:before{background:rgb(${NODATA})!important}</style>`);
 function ramp(t) {
-  if (isNaN(t)) return [118,132,150];
+  if (isNaN(t)) return NODATA;
   const u = Math.max(0, Math.min(1, (t - T_LO) / (T_HI - T_LO))) * (RAMP.length - 1), i = Math.min(RAMP.length - 2, u | 0), w = u - i;
   return RAMP[i].map((c, k) => Math.round(c + (RAMP[i+1][k] - c) * w));
 }
@@ -164,8 +171,26 @@ function shape(c, g, w, mk) {
 let curMonth = binMonth[0];
 const chunks = rivers.map(r => {
   const sh = shape(r.c, r.g, r.w, curMonth), c = r.c;
-  return { ring:sh.ring, path:c, g:r.g, w:r.w, mean:sh.mean, h:0, col:[94,117,134,180], flow:NaN, temp:NaN, lat:c[0][1], lon:c[0][0] };
+  return { ring:sh.ring, path:c, g:r.g, w:r.w, mean:sh.mean, h:0, col:[...NODATA,170], flow:NaN, temp:NaN, lat:c[0][1], lon:c[0][0] };
 });
+// ---------- lakes & storages: real outlines; fill from storage volume (else level) vs the observed range ----------
+const lakes = (R.lakes || []).map(l => {
+  const lakeLike = g => /LAKE|DAM\b|\bRES|STORAGE|BARRAGE|WEIR|JETTY|COORONG|\bLK\b/i.test(g.name);   // river gauges near a lake don't measure the lake
+  const gs = l.g.map(i => gauges[i]).filter((g, _, all) => g.svol || g.slevel || lakeLike(g));
+  const src = ['svol','slevel','level'].map(k => { const g = gs.find(x => x[k]); return g && { k, g, a:g[k] }; }).find(Boolean);
+  const tg = gs.find(x => x.temp);
+  let lo = Infinity, hi = -Infinity;
+  if (src) for (const v of src.a) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  return { ...l, src, tg, lo, hi, fill:NaN, vol:NaN, temp:NaN, h:100, col:[160,176,196,110] };
+});
+function updateLakes() {
+  for (const l of lakes) {
+    l.vol = l.src ? samp(l.src.a, frac) : NaN; l.temp = l.tg ? samp(l.tg.temp, frac) : NaN;
+    l.fill = !isNaN(l.vol) && l.hi > l.lo ? (l.vol - l.lo) / (l.hi - l.lo) : NaN;
+    l.h = isNaN(l.fill) ? 400 : 900 + l.fill * 9000 * relief;
+    l.col = isNaN(l.fill) ? [78,104,134,215] : isNaN(l.temp) ? [34,82,124,240] : [...ramp(l.temp), 240];
+  }
+}
 const gaugePts = gauges.map((g, i) => ({ i, g, pos:[g.lon, g.lat] }));
 
 // ---------- map ----------
@@ -197,8 +222,8 @@ function updateValues() {
       if (!isNaN(tv)) { t += tv * c.w[q]; tw += c.w[q]; }
     }
     c.flow = fw ? f / fw : NaN; c.temp = tw ? t / tw : NaN;
-    c.h = (isNaN(c.flow) ? 0 : 220 + Math.log10(1 + Math.max(0,c.flow)) ** 2 * 420) * relief;
-    c.col = isNaN(c.temp) ? [94,117,134,isNaN(c.flow)?70:190] : [...ramp(c.temp), 245];
+    c.h = (isNaN(c.flow) ? 60 : 220 + Math.log10(1 + Math.max(0,c.flow)) ** 2 * 420) * relief;
+    c.col = isNaN(c.temp) ? [...NODATA, isNaN(c.flow) ? 150 : 215] : [...ramp(c.temp), 245];
   }
   return { tot, nf, nt };
 }
@@ -209,7 +234,22 @@ let stats = { tot:0, nf:0, nt:0 }, totSeries = [], maxTot = 1, peakIx = 0;
   maxTot = Math.max(...totSeries, 1); peakIx = totSeries.indexOf(maxTot);
 })();
 
+function showLakeTip(info) {
+  const l = info.object; tip.replaceChildren();
+  const name = document.createElement('h2'); name.textContent = l.n;
+  const value = document.createElement('div'); value.className = 'value';
+  const unitOf = { svol:'ML', slevel:'m', level:'m' };
+  value.textContent = isNaN(l.vol) ? 'No storage observation ' : (l.src.k === 'svol' ? Math.round(l.vol).toLocaleString('en-AU') : l.vol.toFixed(2)) + ' ';
+  const unit = document.createElement('small'); unit.textContent = isNaN(l.vol) ? '' : unitOf[l.src.k]; value.append(unit);
+  const detail = document.createElement('div'); detail.className = 'detail';
+  detail.textContent = (isNaN(l.fill) ? 'fill unknown' : Math.round(l.fill * 100) + '% of observed range') + ' · ' + (isNaN(l.temp) ? 'temperature unavailable' : l.temp.toFixed(1) + ' °C');
+  const source = document.createElement('div'); source.className = 'detail'; source.textContent = l.src ? 'Gauge ' + l.src.g.id + ' · ' + Math.round(l.a).toLocaleString('en-AU') + ' km² outline' : Math.round(l.a) + ' km² outline · no gauge';
+  tip.append(name, value, detail, source); tip.style.display = 'block';
+  tip.style.left = Math.max(8, Math.min(info.x + 14, innerWidth - tip.offsetWidth - 10)) + 'px';
+  tip.style.top = Math.max(8, Math.min(info.y + 14, innerHeight - tip.offsetHeight - 10)) + 'px';
+}
 function showTip(info) {
+  if (info.object && info.layer?.id === 'lakes') return showLakeTip(info);
   const c = info.object;
   if (!c || !['rivers','network'].includes(info.layer?.id)) { tip.style.display='none'; return; }
   const near = c.g.length ? gauges[c.g[0]] : null;
@@ -230,8 +270,10 @@ function showTip(info) {
 function render() {
   const mk = binMonth[Math.max(0, Math.min(N - 1, Math.floor(frac)))];
   if (mk !== curMonth) { curMonth = mk; chunks.forEach((d, i) => { const sh = shape(d.path, d.g, d.w, mk); d.ring = sh.ring; d.mean = sh.mean; }); }
+  updateLakes();
   stats = updateValues(); dirty = false;
   overlay.setProps({ layers:[
+    new deck.SolidPolygonLayer({ id:'lakes', data:lakes, getPolygon:d=>d.r, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col, material:{ambient:.8,diffuse:.4,shininess:6,specularColor:[30,30,30]}, pickable:true, autoHighlight:true, highlightColor:[255,247,224,90], updateTriggers:{getElevation:[frac,relief],getFillColor:frac} }),
     new deck.PathLayer({id:'network',data:chunks,getPath:d=>d.path.map(p=>[p[0],p[1],d.h]),getColor:d=>d.col,getWidth:1.1,widthUnits:'pixels',widthMinPixels:.7,jointRounded:true,pickable:true,autoHighlight:true,highlightColor:[255,247,224,100],updateTriggers:{getPath:[frac,relief],getColor:frac}}),
     new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief,getWidth:curMonth} }),
     new deck.SolidPolygonLayer({ id:'rivers', data:chunks, getPolygon:d=>d.ring, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col,

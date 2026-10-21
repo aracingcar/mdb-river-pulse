@@ -24,12 +24,14 @@ def inside(lon, lat):
 def norm(s):
     s = s.upper().split("@")[0].split(" AT ")[0]
     s = re.sub(r"\b(RIVER|CREEK|CK|R)\b\.?", "", s); return re.sub(r"[^A-Z]", "", s)
+PARAMS = ("flow", "level", "temp", "svol", "slevel")
 sts = []; dropped_g = []
 for sid, name, lat, lon in db.execute("SELECT id,name,lat,lon FROM stations"):
     ser = {}
-    for p in ("flow", "level", "temp"):
+    for p in PARAMS:
         sums = [0.0] * n; cnt = [0] * n
-        for ts, v, u in db.execute("SELECT ts,value,unit FROM daily_obs WHERE station=? AND param=? AND ts>=? AND ts<?", (sid, p, t0, t0 + n * S)):
+        tbl = "obs" if p in ("svol", "slevel") else "daily_obs"   # storage series were fetched raw; the rest come from the daily table
+        for ts, v, u in db.execute(f"SELECT ts,value,unit FROM {tbl} WHERE station=? AND param=? AND ts>=? AND ts<?", (sid, p, t0, t0 + n * S)):
             if v is None or not math.isfinite(v): continue
             if p == "flow":   # normalise to ML/d (viewer converts to m3/s for display)
                 v = v * 86.4 if u == "cumec" else v
@@ -37,13 +39,13 @@ for sid, name, lat, lon in db.execute("SELECT id,name,lat,lon FROM stations"):
             b = (ts - t0) // S; sums[b] += v; cnt[b] += 1
         if any(cnt): ser[p] = [round(sums[i] / cnt[i], 3) if cnt[i] else None for i in range(n)]
     if not inside(lon, lat): dropped_g.append(name); continue
-    if "flow" in ser or "level" in ser or "temp" in ser:
+    if any(p in ser for p in PARAMS):
         sts.append({"id": sid, "name": name, "lat": lat, "lon": lon, "key": norm(name), **ser})
 last = max((i for g in sts for i, v in enumerate(g.get("flow", [])) if v is not None), default=n - 1)
 if last < n - 1:   # trim trailing bins nobody has reported yet
     n = last + 1
     for g in sts:
-        for p in ("flow", "level", "temp"):
+        for p in PARAMS:
             if p in g: g[p] = g[p][:n]
 print(len(sts), "gauges;", {p: sum(p in s for s in sts) for p in ("flow", "level", "temp")})
 def km(la1, lo1, la2, lo2): return math.hypot((la1 - la2) * 111, (lo1 - lo2) * 111 * math.cos(math.radians(la1)))
@@ -51,15 +53,31 @@ rivers = []; dropped_r = 0
 for name, c in json.load(open("data/rivers.json")):
     if not inside(sum(p[0] for p in c) / len(c), sum(p[1] for p in c) / len(c)): dropped_r += 1; continue
     la = sum(p[1] for p in c) / len(c); lo = sum(p[0] for p in c) / len(c); key = norm(name)
-    sc = sorted((km(la, lo, s["lat"], s["lon"]) * (0.25 if key and s["key"] == key else 1), i) for i, s in enumerate(sts))[:3]
+    sc = sorted((km(la, lo, s["lat"], s["lon"]) * (0.25 if key and s["key"] == key else 1), i) for i, s in enumerate(sts) if any(p in s for p in ("flow", "level", "temp")))[:3]
     sc = [x for x in sc if x[0] < 150]
     w = [round(1 / (d + 5) ** 2, 5) for d, _ in sc]; tot = sum(w) or 1
     rivers.append({"c": c, "g": [i for _, i in sc], "w": [round(x / tot, 3) for x in w]})
 print("outside basin, dropped:", len(dropped_g), "gauges,", dropped_r, "river reaches")
 bnd = RINGS[0][::8] + [RINGS[0][0]]
-meta = {"start": start.isoformat(), "step": a.step, "n": n, "aggregation":"daily_mean", "source":"BoM DMQaQc.Merged.DailyMean.24HR", "dayTimezone":"station-local standard time (AEST/ACST), grouped by calendar date"}
+# water bodies (OSM outlines): link each to its own gauges (name match first, else nearby), so the viewer shows where water is
+lakes = []
+LAKE_STOP = re.compile(r"\b(LAKE|LK|DAM|RESERVOIR|RES|STORAGE|WEIR|WATER|THE|OF)\b")
+def lkey(s): return re.sub(r"[^A-Z]", "", LAKE_STOP.sub("", s.upper().split("@")[0]))
+try: wb = json.load(open("data/waterbodies.json"))
+except FileNotFoundError: wb = []
+for b in wb:
+    lo, la = b["c"]; rad = 6 + math.sqrt(b["area"]) * 1.5; key = lkey(b["name"]); cand = []
+    for i, g in enumerate(sts):
+        if not any(p in g for p in ("svol", "slevel", "level", "temp")): continue
+        d = km(la, lo, g["lat"], g["lon"]); gk = lkey(g["name"])
+        named = bool(key) and bool(gk) and (key in gk or gk in key)
+        if named and d < 60 + rad or d < rad: cand.append((0 if named else 1, d, i))
+    cand.sort()
+    lakes.append({"n": b["name"], "a": b["area"], "r": b["ring"], "g": [i for _, _, i in cand[:4]]})
+print(len(lakes), "water bodies;", sum(1 for l in lakes if l["g"]), "with a nearby gauge")
+meta = {"start": start.isoformat(), "step": a.step, "n": n, "aggregation":"daily_mean", "source":"BoM DMQaQc.Merged.DailyMean.24HR", "dayTimezone":"station-local standard time (AEST/ACST), grouped by calendar date", "storageAggregation":"daily arithmetic mean of available raw BoM storage observations", "storageSource":"BoM Storage Volume / Storage Level"}
 output = Path("data/data.js")
 temporary = output.with_suffix(".js.tmp")
-temporary.write_text("window.RIVERDATA=" + json.dumps({"meta": meta, "gauges": sts, "rivers": rivers, "boundary": [[round(x, 3), round(y, 3)] for x, y in bnd]}, separators=(",", ":")) + ";")
+temporary.write_text("window.RIVERDATA=" + json.dumps({"meta": meta, "gauges": sts, "rivers": rivers, "lakes": lakes, "boundary": [[round(x, 3), round(y, 3)] for x, y in bnd]}, separators=(",", ":")) + ";")
 temporary.replace(output)
 print("wrote data/data.js", sum(1 for r in rivers if r["g"]), "of", len(rivers), "chunks linked")

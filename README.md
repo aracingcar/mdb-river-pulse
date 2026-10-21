@@ -44,3 +44,18 @@ python3 -I scripts/backfill_year.py --start-year 2025 --export-to 2026-10-21
 ```
 
 The exporter combines that year with the current year. Completed request windows are stored in the local database so rerunning resumes unfinished requests. `data/backfill-2025-2026.json` records daily observation counts for every month; a completion timestamp is added only after all requests and the final export succeed. Valid empty responses remain gaps; failed requests stop the export after retries.
+
+## Lakes and storages
+
+Named lake and reservoir outlines come from OpenStreetMap. Hover an outline for its linked gauge, storage volume (ML) or level (m), and temperature when available. Height uses the minimum and maximum of that gauge’s available observations; the displayed percentage is an observed range, not percentage of reservoir capacity. Outlines remain fixed as levels change. Missing observations remain gaps; early river history does not imply matching historical storage coverage.
+
+Storage volume and storage level are daily arithmetic means of available raw BoM observations. River discharge, river level and temperature retain the native BoM daily mean series. Storage-only gauges are excluded from river interpolation.
+
+```sh
+python3 scripts/fetch_waterbodies.py
+python3 scripts/build_waterbodies.py
+python3 scripts/fetch_bom.py --stations data/storage_stations.json --props svol,slevel --from 2026-07-01 --to 2026-10-21
+python3 scripts/build_data.py --from 2012-07-01 --to 2026-10-21
+```
+
+The raw OpenStreetMap response and tile cache are excluded from Git; the processed outlines and generated viewer bundle are committed.
