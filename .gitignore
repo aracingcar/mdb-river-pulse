@@ -8,3 +8,5 @@ data/*.sqlite*
 .env.*
 
 data/*.tmp
+
+.backfill/

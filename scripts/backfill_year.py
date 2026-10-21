@@ -23,9 +23,9 @@ end_year = f'{args.start_year+1}-06-30'
 report_path = root / 'data' / f'backfill-{args.start_year}-{args.start_year+1}.json'
 report = {'waterYear':f'{args.start_year}–{args.start_year+1}', 'start':start, 'end':end_year, 'exportTo':args.export_to, 'aggregation':'BoM DailyMean.24HR', 'dayTimezone':'station-local standard time (AEST/ACST), grouped by calendar date', 'status':'fetching', 'months':[]}
 report_path.write_text(json.dumps(report,indent=2)+'\n')
-command = [sys.executable,'-I','scripts/fetch_bom.py','--stations',args.stations,'--backfill','--resume','--include-known-stations','--daily-means','--from',start,'--to',args.export_to]
+command = [sys.executable,'-I','scripts/fetch_bom.py','--stations',args.stations,'--backfill','--resume','--include-known-stations','--daily-means','--from',start,'--to',end_year]
 for attempt in range(3):
-    print(f'=== Daily means {start} through {args.export_to}: attempt {attempt+1} ===',flush=True)
+    print(f'=== Daily means {start} through {end_year}: attempt {attempt+1} ===',flush=True)
     result = subprocess.run(command,cwd=root)
     if result.returncode == 0: break
 if result.returncode:
@@ -36,7 +36,7 @@ if result.returncode:
 
 zone=dt.timezone(dt.timedelta(hours=10))
 t0=dt.datetime.fromisoformat(start).replace(tzinfo=zone).isoformat(timespec='seconds')
-t1=(dt.datetime.fromisoformat(args.export_to).replace(tzinfo=zone)+dt.timedelta(days=1)-dt.timedelta(minutes=1)).isoformat(timespec='seconds')
+t1=(dt.datetime.fromisoformat(end_year).replace(tzinfo=zone)+dt.timedelta(days=1)-dt.timedelta(minutes=1)).isoformat(timespec='seconds')
 with sqlite3.connect(root/'data/river.db',timeout=300) as db:
     statuses=dict(db.execute('SELECT status,count(*) FROM daily_windows WHERE start=? AND end=? GROUP BY status',(t0,t1)))
     if statuses.get('failed',0): raise RuntimeError('Daily requests remain failed')
