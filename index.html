@@ -40,7 +40,7 @@
   #nav button[data-a=zin] { grid-row:1; grid-column:2; } #nav button[data-a=zout] { grid-row:2; grid-column:2; } #nav button[data-a=up] { grid-row:4; grid-column:2; } #nav button[data-a=left] { grid-row:5; grid-column:1; } #nav button[data-a=right] { grid-row:5; grid-column:3; } #nav button[data-a=down] { grid-row:6; grid-column:2; } #nav button[data-a=rotl] { grid-row:7; grid-column:2; } #nav button[data-a=rotr] { grid-row:8; grid-column:2; } #nav button[data-a=tiltu] { grid-row:9; grid-column:2; } #nav button[data-a=tiltd] { grid-row:10; grid-column:2; } #nav button[data-a=reset] { grid-row:11; }
   #reliefBox { font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); text-align:center; margin-top:5px; } #reliefBox input { width:70px; accent-color:#287b90; display:block; margin:7px auto 0; height:9px; cursor:pointer; }
   #ewrBox { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:2px; color:var(--dim); font-size:9px; letter-spacing:.13em; text-transform:uppercase; cursor:pointer; } #ewrBox input { width:13px; height:13px; margin:0; accent-color:#2a9d63; cursor:pointer; }
-  #ewrObj { position:absolute; top:18px; right:18px; width:250px; z-index:6; pointer-events:none; font:9px 'IBM Plex Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  #ewrObj { position:absolute; top:18px; right:18px; width:268px; z-index:6; pointer-events:none; font:9px 'IBM Plex Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
   #ewrObj h3 { margin:0 0 6px; font:inherit; letter-spacing:.13em; }
   #ewrObj #ewrSdl { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; margin:0 0 9px; padding:0 0 6px; border:0; border-bottom:1px solid #647e96; background:none; font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); text-align:left; cursor:pointer; pointer-events:auto; }
   #ewrObj #ewrSdl span:last-child { color:#287b90; }
@@ -51,7 +51,7 @@
   #ewrObj .row { display:grid; grid-template-columns:128px 1fr; align-items:center; gap:7px; margin-bottom:5px; }
   #ewrObj .row b { font-weight:600; color:#0d5c3a; font-size:9px; letter-spacing:.08em; transform-origin:left center; }
   #ewrObj .trk { height:7px; background:rgba(35,38,43,.12); border-radius:4px; overflow:hidden; } #ewrObj .fill { height:100%; width:0; background:#2a9d63; border-radius:4px; transition:width .25s; }
-  #ewrObj .trk { position:relative; } #ewrObj .trk u { position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:#23262b; opacity:.6; } #ewrObj .fill.under { background:#d9822b; }
+  #ewrObj .trk { position:relative; } #ewrObj .trk u { position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:#23262b; opacity:.6; }
   #ewrObj .row.hit .fill { background:#7be0a5; } #ewrObj .row.hit b { animation:ewrObjHit .6s ease-out; } #ewrObj .n { text-align:right; color:#23262b; }
   @keyframes ewrObjHit { 0% { transform:scale(1.5); } 100% { transform:scale(1); } }
   body.ewrOn #camera { top:max(23%,200px); }
@@ -69,6 +69,23 @@
   .ewrPop.bad i { border-color:#e0a050; animation-duration:1.8s; }
   @keyframes ewrArc { from { --a:0; } to { --a:var(--p,.05); } }
   @keyframes ewrSink { 0% { opacity:0; transform:translate(-50%,-30px) scale(.7); } 12% { opacity:1; transform:translate(-50%,-22px) scale(1.1); } 70% { opacity:1; transform:translate(-50%,-16px) scale(1); } 100% { opacity:0; transform:translate(-50%,6px) scale(1); } }
+  /* theme-specific, game-style bars: each ecological theme has its own colours, icon and frenzy glow */
+  #ewrObj .row { grid-template-columns:142px 1fr; gap:8px; margin-bottom:7px; }
+  #ewrObj .row[data-k=NF] { --c1:#1c6fb0; --c2:#6ccbf0; --glow:#8fe4ff; } #ewrObj .row[data-k=WB] { --c1:#4a78cf; --c2:#c4d8ff; --glow:#dcebff; }
+  #ewrObj .row[data-k=NV] { --c1:#2a8a48; --c2:#a4e67e; --glow:#ccff9c; } #ewrObj .row[data-k=EF] { --c1:#d4821a; --c2:#ffd96e; --glow:#ffeaa6; }
+  #ewrObj .row[data-k=OS] { --c1:#7f52bd; --c2:#d6aef5; --glow:#ebd0ff; }
+  #ewrObj .row b { display:flex; align-items:center; gap:6px; color:var(--c1); text-shadow:none; }
+  #ewrObj .row b svg { width:13px; height:13px; flex:none; fill:currentColor; }
+  #ewrObj .trk { height:8px; border-radius:4px; background:rgba(35,38,43,.14); box-shadow:none; }
+  #ewrObj .trk .lost { border-radius:4px; }
+  #ewrObj .row .fill { border-radius:4px; background:#2a9d63; filter:none; box-shadow:none; animation:none; }
+  #ewrObj .row.max .fill { background:repeating-linear-gradient(115deg, rgba(255,255,255,.16) 0 4px, rgba(255,255,255,0) 4px 9px), linear-gradient(90deg, var(--c1), var(--c2)); background-size:18px 100%, 100% 100%; box-shadow:none; }
+  #ewrObj .row.max .trk { overflow:visible; animation:ewrFrenzyT .8s ease-in-out infinite alternate; }
+  #ewrObj .row.max .fill { filter:none; box-shadow:0 0 5px 0 var(--glow); animation:ewrStripes .7s linear infinite; }
+  #ewrObj .row.max b { color:var(--c1); text-shadow:none; } #ewrObj .row.max b svg { animation:ewrIconPop .8s ease-in-out infinite alternate; }
+  @keyframes ewrStripes { to { background-position:18px 0, 0 0; } }
+  @keyframes ewrFrenzyT { from { box-shadow:0 0 0 0 var(--glow); } to { box-shadow:0 0 7px 1px var(--glow); } }
+  @keyframes ewrIconPop { from { transform:scale(1); } to { transform:scale(1.15); } }
   #ewrFx { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; }
   .ewrPop { position:absolute; left:0; top:0; will-change:transform; white-space:nowrap; }
   .ewrPop b { display:block; font:600 11px 'IBM Plex Mono',monospace; color:#0d5c3a; background:rgba(236,250,242,.94); border:1px solid #2a9d63; border-radius:10px; padding:2px 7px; box-shadow:0 2px 8px rgba(20,60,40,.25); transform:translate(-50%,0); animation:ewrRise 2.4s ease-out forwards; }
@@ -644,10 +661,17 @@ for (const sc of SCOPES) { const b = document.createElement('button'); b.dataset
 sdlMenu.firstChild.classList.add('on');
 sdlBtn.onclick = () => { const open = sdlMenu.hidden; sdlMenu.hidden = !open; sdlBtn.setAttribute('aria-expanded', String(open)); };
 addEventListener('click', e => { if (!sdlMenu.hidden && !e.target.closest('#ewrSdl,#ewrSdlMenu')) { sdlMenu.hidden = true; sdlBtn.setAttribute('aria-expanded', 'false'); } });
+const THEME_ICON = {
+  NF: '<path d="M1.5 8C3.7 4.800 7.500 4 10.500 5.800L14.500 3.500v9L10.500 10.200C7.500 12 3.700 11.200 1.500 8z"/><circle cx="4.800" cy="7.300" r=".9" fill="#fff"/>',
+  WB: '<path d="M1 10.500C3.800 10.500 5.500 8.500 8 4c.8 2.400 2.600 3.200 7 2.700-1.300 1-1.600 2.200-3.200 3.200.9.300 1.900.2 2.900-.2-1.200 3.200-5.400 5-8.600 3.800C4.400 12.800 2.800 12.100 1 10.500z"/>',
+  NV: '<path d="M14 2C7 1.500 2.500 5.200 3 10.500c.1 1 .5 1.800 1.100 2.500C4.600 9.500 7 7 10.800 5.400 8.200 7.500 6.300 10.200 5.600 14c5.200.8 9-3.200 8.400-12z"/>',
+  EF: '<circle cx="8" cy="8" r="2.800"/><path d="M8 1.200v2.200M8 12.600v2.200M1.200 8h2.200M12.600 8h2.200M3.200 3.200l1.500 1.500M11.300 11.300l1.500 1.500M12.800 3.200l-1.500 1.500M4.700 11.300l-1.500 1.500" stroke="currentColor" stroke-width="1.500" stroke-linecap="round" fill="none"/>',
+  OS: '<path d="M2 11C2 6.800 4.700 4.500 8 4.500s6 2.300 6 6.500z"/><circle cx="14.200" cy="9.200" r="1.500"/><path d="M4 11.500v2M11 11.500v2" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" fill="none"/>'
+};
 const objRows = {};
 for (const k of objKeys) {
   const row = document.createElement('div'); row.className = 'row'; row.title = k;
-  row.innerHTML = '<b></b><div class="trk"><div class="lost"></div><div class="fill"></div></div><span class="dash">—</span>'; row.firstChild.textContent = OBJ[k];
+  row.dataset.k = k; row.innerHTML = '<b></b><div class="trk"><div class="lost"></div><div class="fill"></div></div><span class="dash">—</span>'; row.firstChild.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true">' + (THEME_ICON[k] || '') + '</svg><span></span>'; row.firstChild.lastChild.textContent = OBJ[k];
   $('ewrObjRows').append(row); objRows[k] = { row, fill: row.querySelector('.fill'), lost: row.querySelector('.lost'), trk: row.querySelector('.trk'), dash: row.querySelector('.dash') };
 }
 const barPct = v => isNaN(v) ? '0%' : (Math.min(v, OBJ_MAX) / OBJ_MAX * 100).toFixed(1) + '%';
@@ -656,8 +680,8 @@ function ewrObjUpdate(day, hit, bad) {
   for (const k of objKeys) {
     const v = objVal[ewrScope][k][i], r = objRows[k], has = !!objHas[ewrScope][k] && !isNaN(v);
     r.trk.hidden = !has; r.dash.hidden = has;   // a dash where this SDL unit has no EWRs mapped to the theme, or no score yet (first year of record)
-    r.fill.style.width = barPct(v); r.lost.style.width = barPct(objGross[ewrScope][k][i]);   // the red tail is the score lost to inter-event overruns
-    r.fill.classList.toggle('under', v < 1); r.row.classList.toggle('max', v >= OBJ_MAX);
+    r.fill.style.width = barPct(v);  r.lost.style.width = barPct(objGross[ewrScope][k][i]);   // the red tail is the score lost to inter-event overruns
+    r.row.classList.toggle('max', v >= OBJ_MAX);
     if (hit?.has(k)) { r.row.classList.remove('hit'); void r.row.offsetWidth; r.row.classList.add('hit'); }
   }
 }
