@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Assess MDBA environmental watering requirements (py_ewr) against the daily series in data/data.js.
 
-Writes data/ewr-events.js: every successful EWR event (gauge, code, start/end day index) and a per-EWR
-summary. Run with an interpreter that has py_ewr, pandas and numpy installed.
+Writes data/ewr-events.js: for every EWR and water year that py_ewr counts as achieved (its `<code>_eventYears` flag), the
+spells that achieved it and the day it was achieved, plus spells beyond each EWR's maximum inter-event period. Also stores
+ewr_achievements and ewr_summary in the SQLite store. Run with an interpreter that has py_ewr, pandas and numpy installed.
 """
 import argparse, json, sys, warnings
 from pathlib import Path
@@ -19,25 +20,18 @@ def load():
     return json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))
 
 
-def store(db, succ, summary, min_dur):
-    """Replace the ewr_events / ewr_summary tables in the SQLite observation store (all gauges re-assessed each run)."""
+def store(db, rows, summary):
+    """Replace the ewr_achievements / ewr_summary tables in the SQLite observation store (all gauges re-assessed each run)."""
     import sqlite3
-    ev = pd.DataFrame({
-        "gauge": succ.Gauge.astype(str), "planning_unit": succ.PlanningUnit, "ewr": succ.Code,
-        "water_year": pd.to_numeric(succ.waterYear, errors="coerce"),
-        "start_date": pd.to_datetime(succ.startDate).dt.strftime("%Y-%m-%d"),
-        "end_date": pd.to_datetime(succ.endDate).dt.strftime("%Y-%m-%d"),
-        "event_length": pd.to_numeric(succ.eventLength, errors="coerce"),
-        "min_duration": [min_dur.get((str(g), pu, c)) for g, pu, c in zip(succ.Gauge, succ.PlanningUnit, succ.Code)],
-        "state": succ.State, "sdl": succ.SWSDLName,
-    })
+    ach = pd.DataFrame(rows, columns=["gauge", "planning_unit", "ewr", "water_year", "start_date", "end_date", "achieved_on", "spells"])
     sm = summary.drop(columns=["Scenario"]).rename(columns={c: c.lower() for c in summary.columns})
     sm["gauge"] = sm["gauge"].astype(str)
     with sqlite3.connect(db) as con:
-        ev.to_sql("ewr_events", con, if_exists="replace", index=False)
+        con.execute("DROP TABLE IF EXISTS ewr_events")   # earlier versions stored every spell meeting the minimum length, which over-counts achievement
+        ach.to_sql("ewr_achievements", con, if_exists="replace", index=False)
         sm.to_sql("ewr_summary", con, if_exists="replace", index=False)
-        con.execute("CREATE INDEX IF NOT EXISTS ewr_events_gauge ON ewr_events(gauge, start_date)")
-    print(f"stored {len(ev)} events, {len(sm)} summary rows in {db}", file=sys.stderr)
+        con.execute("CREATE INDEX IF NOT EXISTS ewr_ach_gauge ON ewr_achievements(gauge, start_date)")
+    print(f"stored {len(ach)} achieved EWR-years, {len(sm)} summary rows in {db}", file=sys.stderr)
 
 
 def main():
@@ -46,6 +40,7 @@ def main():
     ap.add_argument("--out", default=str(ROOT / "data/ewr-events.js"))
     ap.add_argument("--gauges", nargs="*")
     a = ap.parse_args()
+    a_db = a.db
 
     j = load()
     n = j["meta"]["n"]
@@ -74,43 +69,70 @@ def main():
     sh = ScenarioHandler("scenario.csv", "Standard time-series")
     sh.pu_ewr_statistics, sh.yearly_events, sh.flow_data, sh.level_data = {"s": results}, {"s": events}, df_F, df_L
     summary = sh.get_ewr_results()
-    succ = sh.get_all_successful_events()
 
-    min_dur = {(str(g), pu, c): d for g, pu, c, d in zip(table.Gauge, table.PlanningUnitName, table.Code, pd.to_numeric(table.Duration, errors="coerce").fillna(1))}
-    store(a.db, succ, summary, min_dur)
     # ecological objective groups each EWR serves (py_ewr objective mapping, by objective target)
     group = {"Native Fish": "NF", "Waterbirds": "WB", "Native Vegetation": "NV", "Ecosystem Functions": "EF", "Other Species": "OS"}
     objm = data_inputs.get_obj_mapping()
-    obj = {}
-    for g, pu, c, t in zip(objm.Gauge.astype(str), objm.PlanningUnitName, objm.Code, objm.Target):
+    obj, obj_codes = {}, {}
+    for g, pu, c, t, eco in zip(objm.Gauge.astype(str), objm.PlanningUnitName, objm.Code, objm.Target, objm.EcoObj):
         if t in group:
             obj.setdefault((g, pu, c), set()).add(group[t])
+            obj_codes.setdefault((g, pu, c), set()).add((group[t], str(eco)))
     def mrip_days(y):
         y = pd.to_numeric(y, errors="coerce")
         return 0 if pd.isna(y) or y <= 0 else int(round(float(y) * 365.25))
 
-    # one definition per assessed EWR: [gauge, code, planning unit, target frequency (% of years), objective groups, SDL unit, max inter-event days (0 = none)]
+    # one definition per assessed EWR: [gauge, code, planning unit, target frequency (% of years), objective groups, SDL unit, max inter-event days (0 = none), [theme, ecological objective code] pairs]
     defs, def_ix = [], {}
     for r in summary.itertuples():
         key = (str(r.Gauge), r.PlanningUnit, r.Code)
         tf = pd.to_numeric(r.TargetFrequency, errors="coerce")
-        if key in def_ix or pd.isna(tf) or tf <= 0:
+        if key in def_ix:
             continue
+        tf = 0.0 if pd.isna(tf) else tf   # EWRs without a target frequency are kept (they still pop) but are not scored
         def_ix[key] = len(defs)
-        defs.append([key[0], key[2], key[1], float(tf), sorted(obj.get(key, [])), str(r.SWSDLName), mrip_days(r.MaxInterEventYears)])
+        defs.append([key[0], key[2], key[1], float(tf), sorted(obj.get(key, [])), str(r.SWSDLName), mrip_days(r.MaxInterEventYears), sorted(list(x) for x in obj_codes.get(key, []))])
     pos = {d: i for i, d in enumerate(idx)}
-    ev = {}
-    for r in succ.itertuples():
-        s, e = pd.Timestamp(r.startDate).normalize(), pd.Timestamp(r.endDate).normalize()
-        if s not in pos or e not in pos:
-            continue
-        # day the event qualified: start + minimum duration (py_ewr events run to the end of the flow spell)
-        dur = min_dur.get((str(r.Gauge), r.PlanningUnit, r.Code), 1)
-        ok = min(pos[s] + max(int(dur), 1) - 1, pos[e])
-        di = def_ix.get((str(r.Gauge), r.PlanningUnit, r.Code), -1)
-        ev.setdefault(str(r.Gauge), []).append([r.Code, pos[s], pos[e], ok, di])
+    par = {(str(g), pu, c): (d, ms, epy) for g, pu, c, d, ms, epy in zip(
+        table.Gauge, table.PlanningUnitName, table.Code,
+        pd.to_numeric(table.Duration, errors="coerce").fillna(1), pd.to_numeric(table.MinSpell, errors="coerce").fillna(1), pd.to_numeric(table.EventsPerYear, errors="coerce").fillna(1))}
+
+    def day(x):
+        x = x[0] if isinstance(x, tuple) else x
+        return pos.get(pd.Timestamp(x).normalize())
+
+    # An EWR is achieved in a water year when py_ewr sets its <code>_eventYears flag. The spells that achieved it are the first EventsPerYear
+    # spells lasting at least the required duration; it is achieved on the day the last of them reaches that duration.
+    ev, rows = {}, []
+    for gid, res in results.items():
+        for pu, r in res.items():
+            for col in [c for c in r if c.endswith("_eventYears")]:
+                code = col[:-len("_eventYears")]
+                di = def_ix.get((gid, pu, code), -1)
+                if di < 0:
+                    continue
+                dur, minspell, epy = par.get((gid, pu, code), (1, 1, 1))
+                dur, need = max(int(dur), int(minspell), 1), max(int(epy), 1)
+                by_year = events.get(gid, {}).get(pu, {}).get(code, {})
+                for y, flag in r[col].items():
+                    if flag != 1:
+                        continue
+                    try:
+                        spells = [(day(sp[0]), day(sp[-1])) for sp in by_year.get(y, []) if len(sp)]
+                    except Exception:
+                        continue
+                    spells = sorted((s_, e_) for s_, e_ in spells if s_ is not None and e_ is not None)
+                    good = [x for x in spells if x[1] - x[0] + 1 >= dur] or sorted(spells, key=lambda x: x[0] - x[1])[:need]   # fall back to the longest spells
+                    chosen = good[:need]
+                    if not chosen:
+                        continue
+                    last = chosen[-1]
+                    ok = min(last[0] + dur - 1, last[1])
+                    ev.setdefault(gid, []).append([code, chosen[0][0], last[1], ok, di, [list(x) for x in chosen]])
+                    rows.append([gid, pu, code, int(y), idx[chosen[0][0]].strftime("%Y-%m-%d"), idx[last[1]].strftime("%Y-%m-%d"), idx[ok].strftime("%Y-%m-%d"), len(chosen)])
     for v in ev.values():
         v.sort(key=lambda x: (x[1], x[0]))
+    store(a_db, rows, summary)
 
     # spells beyond the maximum inter-event period: [def, first day over, last day over, ended by an event (1) or still running (0)]
     first_day = {}
@@ -119,11 +141,11 @@ def main():
         first_day[gid] = min(firsts) if firsts else None
     spans = {}
     for gid, rows in ev.items():
-        for code, st, en, ok, di in rows:
+        for code, st, en, ok, di, _ in rows:
             if di >= 0:
                 spans.setdefault(di, []).append((st, en))
     gaps = []
-    for di, (gid, code, pu, tf, cats, sdl, mrip) in enumerate(defs):
+    for di, (gid, code, pu, tf, cats, sdl, mrip, _objs) in enumerate(defs):  # the trailing objectives field is unused here
         if mrip <= 0 or first_day.get(gid) is None:
             continue
         prev_end = first_day[gid] - 1
@@ -146,7 +168,7 @@ def main():
         ])
     out = {"gauges": len(results), "errors": errors, "objectives": {"NF": "Native fish", "WB": "Waterbirds", "NV": "Native vegetation", "EF": "Ecosystem functions", "OS": "Other species"}, "defs": defs, "events": ev, "gaps": gaps, "stats": stats}
     Path(a.out).write_text("window.EWR_EVENTS=" + json.dumps(out, separators=(",", ":")) + ";\n")
-    print(f"{len(results)} gauges, {sum(map(len, ev.values()))} successful events, {len(errors)} errors", file=sys.stderr)
+    print(f"{len(results)} gauges, {sum(map(len, ev.values()))} achieved EWR-years, {len(errors)} errors", file=sys.stderr)
 
 
 if __name__ == "__main__":

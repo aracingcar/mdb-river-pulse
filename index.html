@@ -61,6 +61,7 @@
   #ewrObj .row.max b { color:#b8860b; text-shadow:0 0 6px rgba(255,214,90,.9); }
   @keyframes ewrShine { to { background-position:-200% 0; } }
   @keyframes ewrFrenzy { from { box-shadow:0 0 3px 0 rgba(255,200,70,.5); } to { box-shadow:0 0 11px 2px rgba(255,200,70,.95); } }
+  #ewrObj .row .n { display:none; text-align:right; color:#23262b; font-weight:600; } #ewrObj .row.hasN { grid-template-columns:142px 1fr 34px; } #ewrObj .row.hasN .n { display:block; }
   #ewrObj .dash { color:var(--dim); line-height:7px; } #ewrObj .trk[hidden] { display:none; }
   #ewrObj .trk .lost { position:absolute; left:0; top:0; height:100%; width:0; background:#f0b36e; opacity:.8; border-radius:4px; transition:width .25s; } #ewrObj .trk .fill { position:relative; }
   @property --a { syntax:'<number>'; inherits:false; initial-value:0; }
@@ -101,6 +102,20 @@
   #ewrLoot .loot.idle .lootIn::after { content:''; position:absolute; inset:-7px; border-radius:50%; border:2px solid var(--glow); animation:ewrRing 1.4s ease-out infinite; }
   #ewrLoot .spark { position:fixed; left:0; top:0; width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%; background:var(--glow); z-index:8; pointer-events:none; }
   @keyframes ewrBob { from { transform:translateY(-4px); } to { transform:translateY(4px); } }
+  #ewrSb { margin-top:10px; padding-top:8px; border-top:1px solid rgba(100,126,150,.5); pointer-events:auto; }
+  #ewrSb .sbMsg.tried { justify-content:flex-start; } #ewrSb .sbMsg { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#0d5c3a; font-weight:600; letter-spacing:.1em; }
+  #ewrSb button { padding:3px 9px; border:1px solid #2a9d63; border-radius:10px; background:rgba(236,250,242,.9); color:#0d5c3a; font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; }
+  #ewrSbPanel { margin-top:8px; padding:9px; background:rgba(250,247,242,.95); border:1px solid #d7d1c8; border-radius:6px; box-shadow:0 3px 10px #26394c25; color:#23262b; }
+  #ewrSbPanel label { display:block; margin-bottom:8px; font-size:8px; letter-spacing:.1em; } #ewrSbPanel select { display:block; width:100%; margin-top:3px; padding:4px; font:9px 'IBM Plex Mono',monospace; text-transform:none; letter-spacing:0; color:#23262b; background:#fff; border:1px solid #abb4b9; border-radius:4px; }
+  #ewrSbPanel label.chk { display:flex; align-items:center; gap:6px; text-transform:none; } #ewrSbPanel .sbNote { margin:2px 0 8px; font:9px/1.4 Arial,sans-serif; letter-spacing:0; text-transform:none; color:var(--dim); }
+  #sbStack .blk { margin-bottom:6px; padding:6px 7px 7px; border-left:4px solid var(--bc,#4a78cf); border-radius:4px; background:#fff; box-shadow:0 1px 2px rgba(38,57,76,.12); }
+  #sbStack .blk h5 { margin:0 0 4px; font:600 8px 'IBM Plex Mono',monospace; letter-spacing:.12em; color:var(--bc,#4a78cf); }
+  #sbStack .blk.agg { --bc:#2a9d63; } #sbStack .blk.obj { --bc:#d9822b; } #sbStack .blk h5 { display:flex; justify-content:space-between; align-items:center; } #sbStack .blk .mv { padding:0 5px; border:1px solid #d9822b; border-radius:8px; background:#fff; color:#d9822b; font-size:9px; line-height:14px; cursor:pointer; } #sbStack .blk.scale { --bc:#d9822b; } #sbStack .blk.target { --bc:#7f52bd; }
+  #sbStack .pill { display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px; margin:2px 0; padding:3px 4px; border-radius:10px; background:rgba(74,120,207,.12); }
+  #sbStack .pill.op { background:rgba(74,120,207,.07); border:1px dashed rgba(74,120,207,.5); } #sbStack .pill .kids { display:flex; flex-direction:column; gap:2px; padding-left:6px; border-left:2px solid rgba(74,120,207,.35); }
+  #sbStack select, #sbStack input[type=number] { max-width:100%; padding:2px 3px; font:9px 'IBM Plex Mono',monospace; letter-spacing:0; text-transform:none; color:#23262b; background:#fff; border:1px solid #abb4b9; border-radius:4px; }
+  #sbStack input[type=number] { width:54px; } #sbStack label { display:inline-flex; align-items:center; gap:4px; margin:0; font-size:9px; text-transform:none; letter-spacing:0; }
+  #sbStack .blk.target.bad input { border-color:#c4412b; background:#ffecea; } #sbStack .need { color:#c4412b; font:9px Arial,sans-serif; letter-spacing:0; text-transform:none; margin-left:4px; }
   #ewrFx { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; }
   .ewrPop { position:absolute; left:0; top:0; will-change:transform; white-space:nowrap; }
   .ewrPop b { display:block; font:600 11px 'IBM Plex Mono',monospace; color:#0d5c3a; background:rgba(236,250,242,.94); border:1px solid #2a9d63; border-radius:10px; padding:2px 7px; box-shadow:0 2px 8px rgba(20,60,40,.25); transform:translate(-50%,0); animation:ewrRise 2.4s ease-out forwards; }
@@ -128,7 +143,14 @@
 <body>
 <div id="map"></div>
 <div id="ewrFx" aria-hidden="true"></div>
-<section id="ewrObj" hidden aria-label="Ecological objectives met by successful EWR events"><button id="ewrSdl" aria-expanded="false" aria-controls="ewrSdlMenu" aria-label="Filter by SDL unit"><span id="ewrSdlName">Ecological themes</span> <span>▾</span></button><div id="ewrSdlMenu" hidden></div><div id="ewrObjRows"></div><div id="ewrDisc" hidden><button id="ewrDiscBtn" aria-expanded="false" aria-controls="ewrDiscBody">Discoveries <span>▸</span></button><div id="ewrDiscBody" hidden><div id="ewrDiscN"></div><div id="ewrDiscRow"></div></div></div></section>
+<section id="ewrObj" hidden aria-label="Ecological objectives met by successful EWR events"><button id="ewrSdl" aria-expanded="false" aria-controls="ewrSdlMenu" aria-label="Filter by SDL unit"><span id="ewrSdlName">Ecological themes</span> <span>▾</span></button><div id="ewrSdlMenu" hidden></div><div id="ewrObjRows"></div><div id="ewrDisc" hidden><button id="ewrDiscBtn" aria-expanded="false" aria-controls="ewrDiscBody">Discoveries <span>▸</span></button><div id="ewrDiscBody" hidden><div id="ewrDiscN"></div><div id="ewrDiscRow"></div></div>
+  <div id="ewrSb" hidden>
+    <div class="sbMsg"><span id="sbMsgTxt">Sandbox mode unlocked</span> <button id="ewrSbTry" aria-expanded="false" aria-controls="ewrSbPanel">Try</button></div>
+    <div id="ewrSbPanel" hidden>
+      <div id="sbStack"></div>
+      <div class="sbNote" id="sbNote"></div><button id="sbReset">Reset to default</button>
+    </div>
+  </div></div></section>
 <div id="tip"></div>
 <div id="err"></div>
 
@@ -633,13 +655,15 @@ const OBJ = EWR.objectives || {}, objKeys = Object.keys(OBJ), WIN = 365, OBJ_MAX
 const SDLS = [...new Set(EWR_DEFS.map(d => d[5]).filter(Boolean))].sort(), SCOPES = ['', ...SDLS];   // '' = whole basin
 const objNum = {}, objDen = {}, objOver = {}, objCnt = {}, objHas = {};
 for (const sc of SCOPES) { objNum[sc] = {}; objDen[sc] = {}; objOver[sc] = {}; objCnt[sc] = {}; objHas[sc] = {}; for (const k of objKeys) { objCnt[sc][k] = new Float64Array(N + 2); objNum[sc][k] = new Float64Array(N + 2); objDen[sc][k] = new Float64Array(N + 2); objOver[sc][k] = new Float64Array(N + 2); } }
-const defDays = EWR_DEFS.map(() => []), defStart = EWR_DEFS.map(() => -1);
+const defDays = EWR_DEFS.map(() => []), defStart = EWR_DEFS.map(() => -1), defFirst = EWR_DEFS.map(() => -1);
 for (const evs of Object.values(EWR.events || {})) for (const ev of evs) if (ev[4] >= 0 && ev[3] < N) defDays[ev[4]].push(ev[3]);
 EWR_DEFS.forEach(([gid, , , tf, cats, sdl, mrip], i) => {
+  if (!(tf > 0)) return;   // EWRs without a target frequency still pop but are not scored
   for (const sc of ['', sdl]) for (const k of cats) if (objHas[sc]) objHas[sc][k] = true;   // theme has EWRs mapped here, even before its record is long enough to score
   const g = gaugeById.get(gid); if (!g || !cats.length) return;
   const first = [g.flow, g.level].map(a => a ? a.findIndex(v => v != null) : -1).filter(v => v >= 0);
   if (!first.length) return;
+  defFirst[i] = Math.min(...first);   // first day with data, for the sandbox's own look-back windows
   const start = Math.min(...first) + WIN - 1; if (start >= N) return;   // scored once a full 12 months of record exist
   defStart[i] = start;
   const scopes = ['', sdl];
@@ -672,7 +696,7 @@ for (const sc of SCOPES) {
 }
 let ewrScope = '';
 const sdlBtn = $('ewrSdl'), sdlMenu = $('ewrSdlMenu');
-const pickSdl = sc => { ewrScope = sc; ewrObjDirty = true; $('ewrSdlName').textContent = sc ? 'Ecological themes – ' + sc : 'Ecological themes'; sdlMenu.hidden = true; sdlBtn.setAttribute('aria-expanded', 'false'); sdlMenu.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.sc === sc)); };
+const pickSdl = sc => { ewrScope = sc; ewrObjDirty = true; $('ewrSdlName').textContent = (sc ? 'Ecological themes – ' + sc : 'Ecological themes') + (typeof sbMode !== 'undefined' && sbMode ? ' · sandbox' : ''); sdlMenu.hidden = true; sdlBtn.setAttribute('aria-expanded', 'false'); sdlMenu.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.sc === sc)); };
 for (const sc of SCOPES) { const b = document.createElement('button'); b.dataset.sc = sc; b.textContent = sc || 'Whole of basin'; b.onclick = () => pickSdl(sc); sdlMenu.append(b); }
 sdlMenu.firstChild.classList.add('on');
 sdlBtn.onclick = () => { const open = sdlMenu.hidden; sdlMenu.hidden = !open; sdlBtn.setAttribute('aria-expanded', String(open)); };
@@ -687,10 +711,11 @@ const THEME_ICON = {
 const objRows = {};
 for (const k of objKeys) {
   const row = document.createElement('div'); row.className = 'row'; row.title = k;
-  row.dataset.k = k; row.innerHTML = '<b></b><div class="trk"><div class="lost"></div><div class="fill"></div></div><span class="dash">—</span>'; row.firstChild.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true">' + (THEME_ICON[k] || '') + '</svg><span></span>'; row.firstChild.lastChild.textContent = OBJ[k];
-  $('ewrObjRows').append(row); objRows[k] = { row, fill: row.querySelector('.fill'), lost: row.querySelector('.lost'), trk: row.querySelector('.trk'), dash: row.querySelector('.dash') };
+  row.dataset.k = k; row.innerHTML = '<b></b><div class="trk"><div class="lost"></div><div class="fill"></div></div><span class="dash">—</span><span class="n"></span>'; row.firstChild.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true">' + (THEME_ICON[k] || '') + '</svg><span></span>'; row.firstChild.lastChild.textContent = OBJ[k];
+  $('ewrObjRows').append(row); objRows[k] = { row, fill: row.querySelector('.fill'), lost: row.querySelector('.lost'), trk: row.querySelector('.trk'), dash: row.querySelector('.dash'), n: row.querySelector('.n') };
 }
-const barPct = v => isNaN(v) ? '0%' : (Math.min(v, OBJ_MAX) / OBJ_MAX * 100).toFixed(1) + '%';
+let objMax = OBJ_MAX;   // the score that fills the bar (130% of target by default; 100% for the yes/no and share-of-year metrics)
+const barPct = v => isNaN(v) ? '0%' : (Math.min(v, objMax) / objMax * 100).toFixed(1) + '%';
 
 // ---------- collectables: a themed item pops out of a bar each time that theme enters frenzy; click it (or wait) to collect it into the tray ----------
 const lootBox = document.createElement('div'); lootBox.id = 'ewrLoot'; document.body.append(lootBox);
@@ -706,7 +731,8 @@ function lootCollect(el, k) {
   if (el._done) return; el._done = true; clearTimeout(el._t);
   $('ewrDisc').hidden = false;   // the discoveries section is revealed by the first collectable
   const tr = ($('ewrDiscBody').hidden ? $('ewrDiscBtn') : slots[k]).getBoundingClientRect(), tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2, cur = el._pos;
-  const done = () => { el.remove(); found[k] = true; const t = slots[k]; t.classList.add('got'); t.title = OBJ[k]; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop'); $('ewrDiscN').textContent = Object.keys(found).length + '/' + objKeys.length + ' found'; const b = $('ewrDiscBtn'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); };
+  const done = () => { el.remove(); found[k] = true; const t = slots[k]; t.classList.add('got'); t.title = OBJ[k]; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop'); $('ewrDiscN').textContent = Object.keys(found).length + '/' + objKeys.length + ' found'; if (Object.keys(found).length === objKeys.length) $('ewrSb').hidden = false;   // all themes found: sandbox mode unlocked
+    const b = $('ewrDiscBtn'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); };
   if (REDUCED) return done();
   el.classList.remove('idle');
   el.animate([{ transform: `translate(${cur[0]}px,${cur[1]}px) scale(1)`, opacity: 1 }, { transform: `translate(${tx}px,${ty}px) scale(.5)`, opacity: .4 }], { duration: 550, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).onfinish = done;
@@ -735,19 +761,193 @@ function lootSpawn(k) {
   setTimeout(() => el.classList.add('idle'), 850);
   el._t = setTimeout(el._collect, 6000);
 }
-function ewrObjUpdate(day, hit, bad, celebrate) {
-  const i = Math.max(0, Math.min(N - 1, day));
+
+// ---------- sandbox: choose the per-EWR success metric and how EWRs are aggregated into a theme score ----------
+// A recipe of blocks: SCORE expression (metrics combined with operators, each over its own look-back window) → group EWRs by planning unit →
+// group planning units by SDL unit → final combine → optional overrun scale-down → TARGET SCORE (the value that fills the bar / triggers frenzy).
+const SB_DEFAULT = () => ({ expr: { t: 'm', m: 'atr', win: 'full' }, obj: 'skip', pu: 'skip', objAfterPu: false, sdl: 'mean', target: '100' });
+let rec = SB_DEFAULT(), sbMode = false; const sbDefaultKey = JSON.stringify(rec), sbCache = new Map();
+const sbIsDefault = () => JSON.stringify(rec) === sbDefaultKey;
+const SB_WINS = [['30', 'Last month'], ['91', 'Last 3 months'], ['182', 'Last 6 months'], ['365', 'Last 12 months'], ['730', 'Last 2 years'], ['1825', 'Last 5 years'], ['3650', 'Last 10 years'], ['full', 'Full time series']];
+const SB_METRICS = { atr: 'frequency ratio (achieved ÷ target)', cov: 'share in successful event', ovr: 'share within max inter-event', etp: 'ETP: time beyond max inter-event' };
+const SB_OPS = { sub: 'A − B', add: 'A + B', mul: 'A × B', avg: 'average of A and B', min: 'min of A and B', max: 'max of A and B' };
+const SB_FNS = { mean: 'mean', median: 'median', min: 'minimum', max: 'maximum' };
+const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const mkSel = (opts, val, on) => { const e = mk('select'); for (const [v, l] of opts) e.append(new Option(l, v)); e.value = val; e.onchange = () => on(e.value); return e; };
+function sbNodeEl(node, replace) {
+  const el = mk('span', 'pill' + (node.t === 'op' ? ' op' : ''));
+  const opts = [...Object.entries(SB_METRICS).map(([k, v]) => ['m:' + k, v]), ['n', 'number'], ...Object.entries(SB_OPS).map(([k, v]) => ['op:' + k, v])];
+  el.append(mkSel(opts, node.t === 'm' ? 'm:' + node.m : node.t === 'n' ? 'n' : 'op:' + node.op, v => {
+    replace(v.startsWith('m:') ? { t: 'm', m: v.slice(2), win: node.win || '365' } : v === 'n' ? { t: 'n', v: '1' }
+      : { t: 'op', op: v.slice(3), a: node.t === 'op' ? node.a : node, b: node.t === 'op' ? node.b : { t: 'n', v: '1' } }); sbChanged(true);
+  }));
+  if (node.t === 'm') el.append(mkSel(SB_WINS, node.win, v => { node.win = v; sbChanged(false); }));
+  else if (node.t === 'n') { const i = mk('input'); i.type = 'number'; i.step = 'any'; i.value = node.v; i.oninput = () => { node.v = i.value; sbChanged(false); }; el.append(i); }
+  else { const kids = mk('span', 'kids'); kids.append(sbNodeEl(node.a, n => { node.a = n; }), sbNodeEl(node.b, n => { node.b = n; })); el.append(kids); }
+  return el;
+}
+function sbRender() {
+  const st = $('sbStack'); st.replaceChildren();
+  const blk = (cls, title) => { const b = mk('div', 'blk ' + cls); b.append(mk('h5', null, title)); st.append(b); return b; };
+  blk('score', 'SCORE').append(sbNodeEl(rec.expr, n => { rec.expr = n; }));
+  const fnOpts = skip => [...(skip ? [['skip', '(skip this step)']] : []), ...Object.entries(SB_FNS)];
+  const objBlk = () => {   // orange, and movable either side of the planning unit step
+    const b = blk('obj', 'GROUP EWRs → ECOLOGICAL OBJECTIVE'), mv = mk('button', 'mv', rec.objAfterPu ? '▲' : '▼'); mv.title = rec.objAfterPu ? 'Move before the planning unit step' : 'Move after the planning unit step';
+    mv.onclick = () => { rec.objAfterPu = !rec.objAfterPu; sbRender(); sbApply(); }; b.firstChild.append(mv);
+    b.append(mkSel([['skip', '(straight to theme score)'], ...Object.entries(SB_FNS)], rec.obj, v => { rec.obj = v; sbChanged(false); }));
+  };
+  const puBlk = () => blk('agg', 'GROUP → PLANNING UNIT').append(mkSel(fnOpts(true), rec.pu, v => { rec.pu = v; sbChanged(false); }));
+  if (rec.objAfterPu) { puBlk(); objBlk(); } else { objBlk(); puBlk(); }
+  blk('agg', 'GROUP → SDL UNIT').append(mkSel(fnOpts(false), rec.sdl, v => { rec.sdl = v; sbChanged(false); }));
+  const tg = blk('target' + (isNaN(parseFloat(rec.target)) || parseFloat(rec.target) <= 0 ? ' bad' : ''), 'TARGET SCORE (REQUIRED)'), ti = mk('input'); ti.type = 'number'; ti.min = 1; ti.step = 'any'; ti.value = rec.target;
+  ti.oninput = () => { rec.target = ti.value; tg.classList.toggle('bad', !(parseFloat(ti.value) > 0)); need.hidden = parseFloat(ti.value) > 0; sbApply(); };
+  const need = mk('span', 'need', 'set a target score to see results'); need.hidden = parseFloat(rec.target) > 0;
+  tg.append(ti, ' %', need);
+  $('sbNote').textContent = sbDescribe();
+}
+const sbExprText = n => n.t === 'm' ? SB_METRICS[n.m] + ' (' + SB_WINS.find(w => w[0] === n.win)[1].toLowerCase() + ')' : n.t === 'n' ? n.v : n.op === 'sub' ? '(' + sbExprText(n.a) + ' − ' + sbExprText(n.b) + ')' : n.op === 'add' ? '(' + sbExprText(n.a) + ' + ' + sbExprText(n.b) + ')'
+  : n.op === 'mul' ? '(' + sbExprText(n.a) + ' × ' + sbExprText(n.b) + ')' : SB_OPS[n.op].split(' ')[0].replace('average', 'average') + '(' + sbExprText(n.a) + ', ' + sbExprText(n.b) + ')';
+function sbDescribe() {
+  const stepO = rec.obj !== 'skip' && 'ecological objective: ' + SB_FNS[rec.obj], stepP = rec.pu !== 'skip' && 'planning unit: ' + SB_FNS[rec.pu];
+  const steps = [...(rec.objAfterPu ? [stepP, stepO] : [stepO, stepP]), 'SDL unit: ' + SB_FNS[rec.sdl]].filter(Boolean).join(' → ');
+  return 'Each EWR scores ' + sbExprText(rec.expr) + '; combined by ' + steps + '. Over a full time series the score is fixed and does not change as you scroll.';
+}
+const startUTC = Date.parse(meta.start.slice(0, 10) + 'T00:00:00Z'), wyOf = idx => { const d = new Date(startUTC + idx * 864e5); return d.getUTCFullYear() - (d.getUTCMonth() < 6 ? 1 : 0); };   // Jul–Jun water year
+let defRanges = null;
+function sbCtx(i, cap) {   // lazily built per-EWR helpers: success-day, event-coverage and overdue-day prefix sums
+  const [, , , tf, , , mrip] = EWR_DEFS[i], first = defFirst[i], w = tf / 100, cache = {};
+  const prefix = ind => { const P = new Int32Array(N + 1); for (let t = 0; t < N; t++) P[t + 1] = P[t] + ind[t]; return P; };
+  const rangeInd = diff => { const ind = new Uint8Array(N); let c = 0; for (let t = 0; t < N; t++) { c += diff[t]; ind[t] = c > 0 ? 1 : 0; } return ind; };
+  const P = {
+    get S() { return cache.S ||= (() => { const a = new Uint8Array(N); for (const d of defDays[i]) a[d] = 1; return prefix(a); })(); },
+    get C() { return cache.C ||= (() => { const diff = new Int8Array(N + 1); for (const [a, b] of defRanges[i]) { diff[a]++; diff[Math.min(b, N - 1) + 1]--; } return prefix(rangeInd(diff)); })(); },
+    get O() { return cache.O ||= (() => { const diff = new Int8Array(N + 1); for (const [di, lo, hi] of EWR_GAPS) if (di === i) { const from = Math.max(lo, first), to = Math.min(hi, N - 1); if (from <= to) { diff[from]++; diff[to + 1]--; } } return prefix(rangeInd(diff)); })(); }
+  };
+  const share = (Q, a, b) => (Q[b + 1] - Q[a]) / (b - a + 1);
+  const series = (win, fn) => {   // evaluates fn(a, b) over each trailing window, or once over the whole record
+    if (win === 'full') return Float32Array.of(fn(first, N - 1));
+    const W = +win, out = new Float32Array(N).fill(NaN); for (let t = first + W - 1; t < N; t++) out[t] = fn(t - W + 1, t); return out;
+  };
+  return {
+    w, mrip,
+    leaf(m, win) {
+      const key = m + '|' + win; if (cache[key]) return cache[key];
+      if ((m === 'ovr' || m === 'etp') && mrip <= 0) return null;
+      const full = win === 'full', W = full ? 0 : +win;
+      return cache[key] = series(win, (a, b) => {
+        if (m === 'cov') return share(P.C, a, b);
+        if (m === 'ovr') return 1 - share(P.O, a, b);
+        if (m === 'etp') return share(P.O, a, b);   // exceedance time proportion: share of the window beyond the maximum inter-event period
+        const len = b - a + 1, hit = P.S[b + 1] - P.S[a];   // water years in the window that py_ewr counts as achieved
+        const years = full ? wyOf(b) - wyOf(a) + 1 : Math.max(1, len / 365.25);   // over the record: water years touched, as py_ewr counts them
+        return Math.min(cap, hit / (w * years));   // ÷ the years the target frequency expects (frequency ratio)
+      });
+    }
+  };
+}
+function sbEval(n, ctx) {   // an expression over one EWR; arrays of length 1 are fixed (full-series) values, length N are daily
+  if (n.t === 'm') return ctx.leaf(n.m, n.win);
+  if (n.t === 'n') return Float32Array.of(parseFloat(n.v));
+  const a = sbEval(n.a, ctx), b = sbEval(n.b, ctx); if (!a || !b) return null;
+  const L = Math.max(a.length, b.length), out = new Float32Array(L), f = { sub: (x, y) => x - y, add: (x, y) => x + y, mul: (x, y) => x * y, avg: (x, y) => (x + y) / 2, min: Math.min, max: Math.max }[n.op];
+  for (let t = 0; t < L; t++) out[t] = f(a[a.length > 1 ? t : 0], b[b.length > 1 ? t : 0]);
+  return out;
+}
+function sbReduce(fn, vs, ws, gid, ng) {   // combine items by group: returns [values, weights, group ids]
+  const cnt = new Int32Array(ng), sum = new Float64Array(ng), sw = new Float64Array(ng), wsum = new Float64Array(ng), mn = new Float64Array(ng).fill(Infinity), mx = new Float64Array(ng).fill(-Infinity);
+  const buckets = fn === 'median' ? Array.from({ length: ng }, () => []) : null;
+  for (let j = 0; j < vs.length; j++) { const g = gid[j], v = vs[j], w = ws[j]; cnt[g]++; sum[g] += v; sw[g] += v * w; wsum[g] += w; if (v < mn[g]) mn[g] = v; if (v > mx[g]) mx[g] = v; if (buckets) buckets[g].push(v); }
+  const rv = [], rw = [], rg = [];
+  for (let g = 0; g < ng; g++) if (cnt[g]) {
+    let val; if (fn === 'wmean') val = sw[g] / wsum[g]; else if (fn === 'mean') val = sum[g] / cnt[g]; else if (fn === 'min') val = mn[g]; else if (fn === 'max') val = mx[g];
+    else { const b = buckets[g].sort((x, y) => x - y), h = b.length; val = h % 2 ? b[(h - 1) / 2] : (b[h / 2 - 1] + b[h / 2]) / 2; }
+    rv.push(val); rw.push(wsum[g]); rg.push(g);
+  }
+  return [rv, rw, rg];
+}
+function sbCompute(scope) {
+  const key = JSON.stringify(rec) + '|' + scope; if (sbCache.has(key)) return sbCache.get(key);
+  const cap = 2;   // each EWR's frequency ratio is capped at 2 so rare, low-target EWRs cannot dominate a mean
+  if (JSON.stringify(rec.expr).includes('"cov"') && !defRanges) { defRanges = EWR_DEFS.map(() => []); for (const evs of Object.values(EWR.events || {})) for (const ev of evs) if (ev[4] >= 0) for (const sp of ev[5] || [[ev[1], ev[2]]]) defRanges[ev[4]].push(sp); }
+  const items = new Map();
+  EWR_DEFS.forEach((d, i) => {
+    if (defFirst[i] < 0 || !d[4].length || (scope && d[5] !== scope)) return;
+    const ctx = sbCtx(i, cap), val = sbEval(rec.expr, ctx); if (!val) return;
+    items.set(i, { w: d[3] / 100, pu: d[5] + '|' + d[2], sdl: d[5], val, over: null });
+  });
+  const out = { net: {}, gross: {}, static: true };
   for (const k of objKeys) {
-    const v = objVal[ewrScope][k][i], r = objRows[k], has = !!objHas[ewrScope][k] && !isNaN(v);
-    r.trk.hidden = !has; r.dash.hidden = has;   // a dash where this SDL unit has no EWRs mapped to the theme, or no score yet (first year of record)
-    r.fill.style.width = barPct(v);  r.lost.style.width = barPct(objGross[ewrScope][k][i]);   // the red tail is the score lost to inter-event overruns
-    const isMax = v >= OBJ_MAX; r.row.classList.toggle('max', isMax);
+    // one entry per EWR, or per (EWR, ecological objective) when objectives are grouped first (an EWR serving two objectives counts in both)
+    const list = [];
+    for (const [i, x] of items) {
+      if (!EWR_DEFS[i][4].includes(k)) continue;
+      if (rec.obj === 'skip') list.push({ x, ob: null });
+      else for (const c of (EWR_DEFS[i][7] || []).filter(o => o[0] === k).map(o => o[1]) || []) list.push({ x, ob: c });
+    }
+    const puIds = [...new Set(list.map(e => e.x.pu))], ogIds = [...new Set(list.map(e => e.x.pu + '|' + e.ob))];
+    const obIds = [...new Set(list.map(e => e.ob))], obOfEntry = list.map(e => obIds.indexOf(e.ob)), ogOb = ogIds.map(g => obIds.indexOf(g.slice(g.lastIndexOf('|') + 1) === 'null' ? null : g.slice(g.lastIndexOf('|') + 1))), puOf = list.map(e => puIds.indexOf(e.x.pu)), ogOf = list.map(e => ogIds.indexOf(e.x.pu + '|' + e.ob)), ogPu = ogIds.map(g => puIds.indexOf(g.slice(0, g.lastIndexOf('|'))));
+    const L = list.some(e => e.x.val.length > 1) ? N : 1; if (L > 1) out.static = false;
+    const val = new Float32Array(L).fill(NaN);
+    for (let t = 0; t < L; t++) {
+      const vs = [], ws = [], og = [], pg = [], ob = [];
+      list.forEach((e, j) => { const v = e.x.val[e.x.val.length > 1 ? t : 0]; if (v !== v) return; vs.push(v); ws.push(e.x.w); og.push(ogOf[j]); pg.push(puOf[j]); ob.push(obOfEntry[j]); });
+      if (!vs.length) continue;
+      let cv = vs, cw = ws, cp = pg;
+      if (!rec.objAfterPu) {   // objective first: within each planning unit, then combine the objectives of a planning unit
+        if (rec.obj !== 'skip') { const [rv, rw, rg] = sbReduce(rec.obj, vs, ws, og, ogIds.length); cv = rv; cw = rw; cp = rg.map(g => ogPu[g]); }
+        if (rec.pu !== 'skip') { const [rv, rw] = sbReduce(rec.pu, cv, cw, cp, puIds.length); cv = rv; cw = rw; }
+      } else {   // planning unit first: per objective within each planning unit, then combine each objective across planning units
+        let cb = ob;
+        if (rec.pu !== 'skip') { const [rv, rw, rg] = sbReduce(rec.pu, vs, ws, og, ogIds.length); cv = rv; cw = rw; cb = rg.map(g => ogOb[g]); }
+        if (rec.obj !== 'skip') { const [rv, rw] = sbReduce(rec.obj, cv, cw, cb, obIds.length); cv = rv; cw = rw; }
+      }
+      val[t] = sbReduce(rec.sdl, cv, cw, new Int32Array(cv.length), 1)[0][0];   // the SDL unit is the final level: there is no basin-wide score in sandbox mode
+    }
+    out.gross[k] = out.net[k] = L === 1 ? new Float32Array(N).fill(val[0]) : val;
+  }
+  sbCache.set(key, out); return out;
+}
+const currentScores = () => sbMode ? sbCompute(ewrScope) : { net: objVal[ewrScope], gross: objGross[ewrScope], static: false };
+function sbApply() {
+  const tv = parseFloat(rec.target) / 100; objMax = tv > 0 ? tv : NaN;
+  $('sbNote').textContent = sbDescribe();
+  const tag = sbMode ? ' · sandbox' : ''; $('ewrSdlName').textContent = (ewrScope ? 'Ecological themes – ' + ewrScope : 'Ecological themes') + tag;
+  document.body.style.cursor = 'progress'; setTimeout(() => { ewrObjDirty = true; document.body.style.cursor = ''; }, 0);
+}
+const sbChanged = rerender => { if (rerender) sbRender(); sbApply(); };
+$('sbReset').onclick = () => { rec = SB_DEFAULT(); sbRender(); sbApply(); };
+$('ewrSbTry').onclick = () => {   // after the first try the unlock message goes and only a Sandbox button remains
+  if (!sbMode) {   // entering sandbox mode: scores are per SDL unit, so 'Whole of basin' is no longer an option
+    sbMode = true; sdlMenu.firstChild.hidden = true; if (!ewrScope) pickSdl(SDLS[0]); sbApply();
+  }
+  const open = $('ewrSbPanel').hidden; $('ewrSbPanel').hidden = !open; $('ewrSbTry').setAttribute('aria-expanded', String(open));
+  $('sbMsgTxt').hidden = true; document.querySelector('#ewrSb .sbMsg').classList.add('tried'); $('ewrSbTry').textContent = open ? 'Sandbox ▾' : 'Sandbox ▸';
+};
+sbRender();
+function ewrObjUpdate(day, hit, bad, celebrate) {
+  const i = Math.max(0, Math.min(N - 1, day)), sc = currentScores();
+  for (const k of objKeys) {
+    const v = sc.net[k][i], r = objRows[k], has = !!objHas[ewrScope][k] && !isNaN(v) && !isNaN(objMax);
+    r.trk.hidden = !has; r.dash.hidden = has; r.row.classList.toggle('hasN', !!sc.static); r.n.textContent = has ? Math.round(v * 100) + '%' : '';   // a dash where this SDL unit has no EWRs mapped to the theme, or no score yet (first year of record)
+    r.fill.style.width = barPct(v);  r.lost.style.width = barPct(sc.gross[k][i]);   // the red tail is the score lost to inter-event overruns
+    const isMax = v >= objMax; r.row.classList.toggle('max', isMax);
     if (celebrate && isMax && !spawned[k]) { spawned[k] = true; lootSpawn(k); }   // the first frenzy in a theme pops out its collectable
     prevMax[k] = isMax;
     if (hit?.has(k)) { r.row.classList.remove('hit'); void r.row.offsetWidth; r.row.classList.add('hit'); }
   }
 }
 $('ewrToggle').onchange = e => { ewrShown = e.target.checked; $('ewrObj').hidden = !ewrShown; document.body.classList.toggle('ewrOn', ewrShown); if (!ewrShown) { ewrFx.replaceChildren(); ewrLive.clear(); lootBox.replaceChildren(); } else ewrObjDirty = true; };
+// dev shortcut: type "sandbox" in the gauge search and press Enter to switch EWRs on, mark every theme found and open the sandbox
+$('search').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || $('search').value.trim().toLowerCase() !== 'sandbox') return;
+  e.preventDefault();
+  if (!$('ewrToggle').checked) { $('ewrToggle').checked = true; $('ewrToggle').onchange({ target: $('ewrToggle') }); }
+  for (const k of objKeys) { found[k] = spawned[k] = true; slots[k].classList.add('got'); slots[k].title = OBJ[k]; }
+  $('ewrDiscN').textContent = objKeys.length + '/' + objKeys.length + ' found'; $('ewrDisc').hidden = false; $('ewrSb').hidden = false;
+  if ($('ewrSbPanel').hidden) $('ewrSbTry').click();
+  lootBox.replaceChildren(); $('search').value = ''; listGauges();
+  $('drawer').hidden = true; $('pill').setAttribute('aria-expanded', 'false'); $('pillArrow').textContent = '▸';
+});
 let lastDraw=0;
 function loop(now) {
   const dt=Math.min(.1,(now-last)/1000); last=now;

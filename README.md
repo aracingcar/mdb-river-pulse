@@ -62,10 +62,10 @@ The raw OpenStreetMap response and tile cache are excluded from Git; the process
 
 ## Environmental watering requirements (EWR)
 
-`scripts/run_ewr.py` assesses the daily series in `data/data.js` against the MDBA EWR parameter sheet using [py_ewr](https://github.com/MDBAuth/EWR_tool) (the EWR tool). Only gauges present in both the sheet and this dataset are assessed. It writes `data/ewr-events.js` (successful events for the viewer) and the `ewr_events` and `ewr_summary` tables in `data/river.db`.
+`scripts/run_ewr.py` assesses the daily series in `data/data.js` against the MDBA EWR parameter sheet using [py_ewr](https://github.com/MDBAuth/EWR_tool) (the EWR tool). Only gauges present in both the sheet and this dataset are assessed. A water year counts as achieved when py_ewr sets that EWR's `_eventYears` flag; the script writes those achievements to `data/ewr-events.js` (for the viewer) and to the `ewr_achievements` and `ewr_summary` tables in `data/river.db`.
 
 ```sh
 python3 scripts/run_ewr.py   # needs py_ewr, pandas, numpy
 ```
 
-In the viewer, a green `+CODE` (for example `+SF1`) rises above a gauge on the day a successful event qualifies (start of event plus the EWR's minimum duration) while the timeline plays. The **EWRs** checkbox (off by default) turns on these pops, an orange `−CODE` pop when an EWR passes its maximum inter-event period, and the Ecological themes panel.
+In the viewer, a green `+CODE` (for example `+SF1`) rises above a gauge on the day an EWR is achieved for the water year (the last required spell reaches its minimum duration) while the timeline plays. The **EWRs** checkbox (off by default) turns on these pops, an orange `−CODE` pop when an EWR passes its maximum inter-event period, and the Ecological themes panel.
