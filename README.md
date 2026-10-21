@@ -2,7 +2,7 @@
 
 An interactive river map inspired by [mapped.earth’s River Pulse](https://mapped.earth/river-pulse/), using Bureau of Meteorology Water Data Online observations and OpenStreetMap waterways.
 
-River height represents discharge, width uses the mean over the available observations, and colour represents water temperature. Values between gauges are estimates. Grey-blue reaches have no temperature observation. Combined gauge totals include upstream gauges and do not represent basin outflow.
+River height represents daily mean discharge, width uses each river’s monthly mean from the available observations, and colour represents daily mean water temperature. All three metrics (discharge, level, temperature) use BoM’s `DMQaQc.Merged.DailyMean.24HR` series; the viewer holds each day’s reading and leaves missing daily means blank. Values between gauges are estimates. Grey-blue reaches have no temperature observation. Combined gauge totals include upstream gauges and do not represent basin outflow.
 
 ## View the site
 
@@ -25,7 +25,7 @@ In repository **Settings → Pages**, select **Deploy from a branch**, **main**,
 Python scripts maintain a local SQLite observation store and export the browser data bundle. The database is excluded from Git.
 
 ```sh
-python3 scripts/fetch_bom.py --stations data/all_fetch.json --from 2026-10-01 --to 2026-10-21
+python3 scripts/fetch_bom.py --daily-means --stations data/all_fetch.json --from 2026-10-01 --to 2026-10-21
 python3 scripts/build_data.py --from 2026-10-01 --to 2026-10-21
 ```
 
@@ -36,3 +36,11 @@ Commit and push the regenerated `data/data.js` to update the published snapshot.
 - Observations: [Bureau of Meteorology Water Data Online](https://www.bom.gov.au/waterdata/).
 - Waterways: [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open Database License.
 - Visual and interaction inspiration: [mapped.earth](https://mapped.earth/river-pulse/).
+
+To backfill the previous Australian water year (1 July 2025–30 June 2026), with checkpoints and retries:
+
+```sh
+python3 -I scripts/backfill_year.py --start-year 2025 --export-to 2026-10-21
+```
+
+The exporter combines that year with the current year. Completed request windows are stored in the local database so rerunning resumes unfinished requests. `data/backfill-2025-2026.json` records daily observation counts for every month; a completion timestamp is added only after all requests and the final export succeed. Valid empty responses remain gaps; failed requests stop the export after retries.

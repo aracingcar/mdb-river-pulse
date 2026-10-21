@@ -6,3 +6,5 @@ data/*.db-*
 data/*.sqlite*
 .env
 .env.*
+
+data/*.tmp

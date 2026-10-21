@@ -1,9 +1,9 @@
 """Export data/river.db + data/rivers.json to data/data.js for the viewer.
-Usage: build_data.py --from 2026-10-01 --to 2026-10-21 [--step 6]"""
+Usage: build_data.py --from 2026-10-01 --to 2026-10-21 [--step 24]"""
 import argparse, json, math, re, sqlite3, datetime as dt
 from pathlib import Path
 ap = argparse.ArgumentParser(); ap.add_argument("--from", dest="t0", required=True); ap.add_argument("--to", dest="t1", required=True)
-ap.add_argument("--step", type=int, default=6); ap.add_argument("--db", default="data/river.db"); a = ap.parse_args()
+ap.add_argument("--step", type=int, choices=[24], default=24); ap.add_argument("--db", default="data/river.db"); a = ap.parse_args()
 TZ = dt.timezone(dt.timedelta(hours=10))
 start = dt.datetime.fromisoformat(a.t0).replace(tzinfo=TZ)
 end = dt.datetime.fromisoformat(a.t1).replace(tzinfo=TZ) + dt.timedelta(days=1)
@@ -29,7 +29,8 @@ for sid, name, lat, lon in db.execute("SELECT id,name,lat,lon FROM stations"):
     ser = {}
     for p in ("flow", "level", "temp"):
         sums = [0.0] * n; cnt = [0] * n
-        for ts, v, u in db.execute("SELECT ts,value,unit FROM obs WHERE station=? AND param=? AND ts>=? AND ts<?", (sid, p, t0, t0 + n * S)):
+        for ts, v, u in db.execute("SELECT ts,value,unit FROM daily_obs WHERE station=? AND param=? AND ts>=? AND ts<?", (sid, p, t0, t0 + n * S)):
+            if v is None or not math.isfinite(v): continue
             if p == "flow":   # normalise to ML/d (viewer converts to m3/s for display)
                 v = v * 86.4 if u == "cumec" else v
             if v is None or (p == "temp" and not 0 < v < 40) or (p == "flow" and v < 0): continue
@@ -56,7 +57,7 @@ for name, c in json.load(open("data/rivers.json")):
     rivers.append({"c": c, "g": [i for _, i in sc], "w": [round(x / tot, 3) for x in w]})
 print("outside basin, dropped:", len(dropped_g), "gauges,", dropped_r, "river reaches")
 bnd = RINGS[0][::8] + [RINGS[0][0]]
-meta = {"start": start.isoformat(), "step": a.step, "n": n}
+meta = {"start": start.isoformat(), "step": a.step, "n": n, "aggregation":"daily_mean", "source":"BoM DMQaQc.Merged.DailyMean.24HR", "dayTimezone":"station-local standard time (AEST/ACST), grouped by calendar date"}
 output = Path("data/data.js")
 temporary = output.with_suffix(".js.tmp")
 temporary.write_text("window.RIVERDATA=" + json.dumps({"meta": meta, "gauges": sts, "rivers": rivers, "boundary": [[round(x, 3), round(y, 3)] for x, y in bnd]}, separators=(",", ":")) + ";")
