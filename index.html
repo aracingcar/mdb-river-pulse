@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murray–Darling River Pulse</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#91abcc; --ink:#2e2c28; --dim:#5d6874; --paper:#f5f2ed; --serif:'Source Serif 4',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden; font-family:var(--mono); }
+  button,input { font:inherit; } button { color:inherit; cursor:pointer; } button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:2px solid #287b90; outline-offset:4px; }
+  #map { position:absolute; inset:0; z-index:0; } .abs { position:absolute; z-index:2; }
+  #head { top:16px; left:18px; max-width:440px; pointer-events:none; z-index:2; }
+  #head h1 { font:500 clamp(30px,3vw,49px)/1.04 var(--serif); margin:0 0 13px; letter-spacing:-.035em; max-width:440px; }
+  #head .kick { font-size:11px; letter-spacing:.17em; line-height:1.8; text-transform:uppercase; margin-bottom:9px; }
+  #head p { font:400 14px/1.6 'Helvetica Neue',Arial,sans-serif; color:var(--dim); margin:0; max-width:405px; }
+  #region { display:inline-flex; align-items:center; gap:14px; margin-top:18px; padding:0 0 6px; border:0; border-bottom:1px solid #647e96; background:none; font-size:10px; letter-spacing:.13em; pointer-events:auto; }
+  #region span { color:#287b90; } #regionMenu { pointer-events:auto; margin-top:9px; background:var(--paper); border-radius:7px; padding:15px; box-shadow:0 5px 25px #26394c25; font:12px/1.7 Arial,sans-serif; max-width:340px; } #regionMenu p { font:inherit; }
+  #pill { top:49%; left:18px; background:rgba(245,242,237,.94); border:1px solid #d0d1d0; border-radius:8px; padding:9px 12px; font-size:10px; letter-spacing:.04em; z-index:3; }
+  #pill span:last-child { margin-left:9px; } #drawer { position:absolute; z-index:6; left:18px; top:calc(49% + 44px); width:320px; max-height:34vh; background:var(--paper); border-radius:8px; padding:12px; box-shadow:0 8px 30px #26394c30; }
+  [hidden] { display:none!important; } #search { width:100%; background:transparent; border:0; border-bottom:1px solid #abb4b9; padding:6px 2px 10px; border-radius:0; font-size:11px; } #gaugeList { overflow:auto; max-height:calc(34vh - 65px); margin-top:7px; } #gaugeList button { display:block; width:100%; border:0; border-bottom:1px solid #d9dcdd; padding:10px 2px; text-align:left; background:none; font-size:10px; } #gaugeList button:hover { color:#24758b; } #gaugeList small { display:block; color:var(--dim); margin-top:4px; }
+  #date { left:18px; bottom:174px; font:400 clamp(25px,2.3vw,38px)/1.1 var(--serif); letter-spacing:-.02em; pointer-events:none; }
+  #flowBox { right:390px; bottom:166px; width:230px; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); pointer-events:none; }
+  #flowBox .big { font:500 31px/1.1 var(--serif); color:var(--ink); letter-spacing:0; text-transform:none; margin-top:4px; } #flowBox .big small { font:400 13px var(--serif); color:var(--dim); }
+  #flowBox .meter { height:6px; background:#647e9655; margin:7px 0 6px; border-radius:4px; overflow:hidden; } #flowBox .meter i { display:block; height:100%; background:#ad4528; border-radius:4px; } #flowSub { font-size:9px; letter-spacing:.035em; text-transform:none; }
+  #legend { right:145px; bottom:166px; width:200px; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); pointer-events:none; } #legend .bar { height:10px; margin:7px 0 5px; border-radius:3px; background:linear-gradient(90deg,#276777,#67a6a0,#b8cbb1,#e5c895,#dd8a46,#a1371c); } #legend .r { display:flex; justify-content:space-between; font-size:9px; letter-spacing:.04em; } #missing { margin-top:7px; font-size:8px; letter-spacing:.025em; text-transform:none; } #missing:before { content:''; display:inline-block; width:14px; height:3px; margin:0 6px 2px 0; background:#5e7586; }
+  #units { right:18px; bottom:190px; display:flex; background:#f5f2ed99; border:1px solid #6a7d8f77; border-radius:18px; overflow:hidden; } #units button { border:0; background:none; padding:8px 11px; font-size:10px; } #units button.on { background:var(--ink); color:var(--paper); }
+  #camera { position:absolute; right:18px; top:23%; display:flex; flex-direction:column; align-items:center; gap:11px; z-index:3; } #nav { display:grid; grid-template-columns:repeat(3,28px); grid-auto-rows:28px; gap:5px; }
+  #nav button { width:28px; height:28px; border:1px solid #d0d1d0; border-radius:7px; background:rgba(245,242,237,.94); font:14px var(--mono); display:grid; place-items:center; padding:0; transition:background .15s; } #nav button:hover,#tl button:hover,#pill:hover { background:#fff; } #nav .center { grid-column:2; } #nav .zoom { width:35px; height:35px; justify-self:center; } #nav .zoom-row { grid-row:span 1; } #nav .wide { grid-column:1/4; justify-self:center; width:54px; font-size:10px; letter-spacing:.04em; height:34px; } #nav .spacer { grid-column:1/4; height:6px; } #nav { grid-template-rows:35px 35px 8px 28px 28px 28px 35px 35px 35px 35px 38px; }
+  #nav button[data-a=zin] { grid-row:1; grid-column:2; } #nav button[data-a=zout] { grid-row:2; grid-column:2; } #nav button[data-a=up] { grid-row:4; grid-column:2; } #nav button[data-a=left] { grid-row:5; grid-column:1; } #nav button[data-a=right] { grid-row:5; grid-column:3; } #nav button[data-a=down] { grid-row:6; grid-column:2; } #nav button[data-a=rotl] { grid-row:7; grid-column:2; } #nav button[data-a=rotr] { grid-row:8; grid-column:2; } #nav button[data-a=tiltu] { grid-row:9; grid-column:2; } #nav button[data-a=tiltd] { grid-row:10; grid-column:2; } #nav button[data-a=reset] { grid-row:11; }
+  #reliefBox { font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); text-align:center; margin-top:5px; } #reliefBox input { width:70px; accent-color:#287b90; display:block; margin:7px auto 0; height:9px; cursor:pointer; }
+  #bar { z-index:1; left:0; right:0; bottom:0; height:245px; background:linear-gradient(transparent,rgba(135,161,193,.8) 80%); pointer-events:none; }
+  #tl { left:18px; right:18px; bottom:64px; height:87px; display:flex; align-items:center; gap:16px; } #tl button { flex-shrink:0; border:1px solid #7f94a7; background:#f5f2ed99; color:var(--ink); display:grid; place-items:center; }
+  #play { width:44px; height:44px; border-radius:50%; font:17px Arial,sans-serif; } #replay { width:34px; height:34px; border-radius:50%; font-size:20px; } #spd { width:43px; height:32px; font-size:10px; border-radius:18px; }
+  #chartWrap { position:relative; flex:1; min-width:0; height:100%; cursor:ew-resize; touch-action:none; } #chart { position:absolute; inset:0; width:100%; height:100%; } #timeline { position:absolute; width:100%; inset:0; height:100%; margin:0; opacity:0; cursor:ew-resize; } #chartWrap:focus-within { outline:1px solid #287b90; outline-offset:4px; }
+  #foot { left:18px; right:18px; bottom:10px; font-size:9px; letter-spacing:.035em; color:var(--dim); display:flex; justify-content:space-between; align-items:flex-end; gap:20px; } #variance { flex-shrink:0; font:11px/1.4 Arial,sans-serif; } #variance strong { font:500 32px var(--serif); color:var(--ink); margin-right:6px; } #jumpPeak { background:none; border:0; border-bottom:1px solid #6a8097; padding:0 0 3px; font-size:9px; letter-spacing:.06em; color:var(--dim); margin-left:16px; } #credits { text-align:right; font-size:8px; line-height:1.8; max-width:55%; } #credits a { color:inherit; text-decoration:none; border-bottom:1px solid #6a809755; }
+  #tip { position:absolute; display:none; pointer-events:none; background:rgba(250,247,242,.97); padding:12px 15px; border:1px solid #d7d1c8; border-radius:7px; font:12px/1.5 Arial,sans-serif; box-shadow:0 3px 10px #26394c25; z-index:9; min-width:205px; max-width:280px; } #tip h2 { font:500 19px/1.2 var(--serif); margin:0 0 7px; } #tip .value { font:500 26px/1.1 var(--serif); } #tip .value small { font:12px Arial,sans-serif; color:var(--dim); } #tip .detail { color:#74716c; margin-top:6px; font-size:11px; }
+  #err { position:absolute; inset:0; display:none; place-items:center; font:18px var(--serif); text-align:center; padding:40px; z-index:20; background:var(--bg); } .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left { display:none; }
+  @media (min-width:1800px) { #head { max-width:520px; } #head h1 { max-width:520px; } #tl { bottom:64px; height:100px; } #date { bottom:185px; } }
+  @media (max-height:760px) and (min-width:761px) { #camera { top:14%; transform:scale(.83); transform-origin:top right; } #date { bottom:153px; } #flowBox,#legend { bottom:148px; } #units { bottom:170px; } #tl { bottom:50px; height:78px; } #foot { bottom:8px; } #head h1 { font-size:38px; } }
+  @media (max-width:1050px) { #head { max-width:350px; } #head h1 { font-size:37px; } #head p { font-size:12px; max-width:320px; } #flowBox { right:330px; width:180px; } #legend { right:120px; width:175px; } #units { right:14px; } #credits .keys { display:none; } #variance { font-size:10px; } }
+  @media (max-width:760px) { #head { top:18px; left:14px; max-width:calc(100% - 28px); } #head h1 { font-size:30px; max-width:340px; margin-bottom:9px; } #head .kick { font-size:8px; letter-spacing:.12em; } #head p { display:none; } #region { font-size:9px; margin-top:8px; } #pill { left:14px; top:auto; bottom:236px; font-size:9px; padding:7px 9px; } #drawer { left:14px; top:auto; bottom:275px; max-height:40vh; width:min(320px,calc(100% - 28px)); } #gaugeList { max-height:calc(40vh - 65px); } #date { left:14px; bottom:158px; font-size:24px; max-width:170px; } #flowBox { right:14px; bottom:158px; width:155px; font-size:8px; } #flowBox .big { font-size:25px; } #flowSub { font-size:8px; } #legend { left:14px; right:auto; bottom:115px; width:145px; font-size:8px; } #legend .bar { height:6px; margin:4px 0; } #legend .r { font-size:8px; } #missing { display:none; } #units { right:14px; bottom:120px; } #units button { padding:6px 10px; font-size:9px; } #camera { right:14px; top:auto; bottom:235px; transform:none; } #nav { display:flex; gap:5px; } #nav button { display:none; } #nav button[data-a=zin],#nav button[data-a=zout],#nav button[data-a=reset] { display:grid; width:30px; height:30px; } #nav button[data-a=reset] { width:48px; font-size:8px; } #reliefBox { display:none; } #tl { left:14px; right:14px; bottom:33px; height:60px; gap:8px; } #play { width:35px; height:35px; font-size:14px; } #replay { width:27px; height:27px; font-size:17px; } #spd { width:32px; height:27px; font-size:9px; } #foot { left:14px; right:14px; bottom:9px; } #variance { display:none; } #credits { max-width:100%; font-size:7px; text-align:left; } #tip { min-width:160px; max-width:220px; } #bar { height:280px; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="tip"></div>
+<div id="err"></div>
+
+<header class="abs" id="head">
+  <h1>Murray–Darling’s River Pulse</h1>
+  <div class="kick">Observed rivers · October 2026</div>
+  <p>Height is discharge. Width is the river’s October mean.<br>Colour is water temperature.</p>
+  <button id="region" aria-expanded="false" aria-controls="regionMenu">MURRAY–DARLING BASIN <span>▾</span></button>
+  <div id="regionMenu" hidden><p>BoM gauge observations carried along nearby river reaches. Between gauges, values are estimates. Grey-blue reaches have no temperature reading; width uses the available October mean. The timeline stops at the last interval with at least 90% of peak gauge coverage.</p></div>
+</header>
+<button class="abs" id="pill" aria-expanded="false" aria-controls="drawer"><span id="pillTxt">Loading rivers</span><span id="pillArrow">▸</span></button>
+<section id="drawer" hidden aria-label="Find a gauge"><input id="search" type="search" placeholder="Find a river or gauge…" aria-label="Search gauges"><div id="gaugeList"></div></section>
+<div class="abs" id="date">October 2026</div>
+<section class="abs" id="flowBox" aria-label="Combined gauge discharge">
+  <div>Reporting gauges combined</div>
+  <div class="big"><span id="flowNow">—</span> <small id="flowU">m³/s</small></div>
+  <div class="meter"><i id="flowMeter" style="width:0"></i></div><div id="flowSub">&nbsp;</div>
+</section>
+<div class="abs" id="legend"><div>Water temperature</div><div class="bar"></div><div class="r"><span id="tLo">—</span><span id="tHi">—</span></div><div id="missing">No temperature observation</div></div>
+<div class="abs" id="units" role="group" aria-label="Discharge units"><button id="uCms" class="on" aria-pressed="true">m³/s</button><button id="uMl" aria-pressed="false">ML/d</button></div>
+<aside id="camera" aria-label="Map camera">
+  <nav id="nav" aria-label="Camera controls">
+    <button class="center zoom" data-a="zin" aria-label="Zoom in" title="Zoom in">+</button>
+    <button class="center zoom" data-a="zout" aria-label="Zoom out" title="Zoom out">−</button>
+    <span class="spacer"></span>
+    <button class="center" data-a="up" aria-label="Pan north" title="Pan north">↑</button>
+    <button data-a="left" aria-label="Pan west" title="Pan west">←</button><span></span><button data-a="right" aria-label="Pan east" title="Pan east">→</button>
+    <button class="center" data-a="down" aria-label="Pan south" title="Pan south">↓</button>
+    <button class="center" data-a="rotl" aria-label="Rotate left" title="Rotate left">↺</button>
+    <button class="center" data-a="rotr" aria-label="Rotate right" title="Rotate right">↻</button>
+    <button class="center" data-a="tiltu" aria-label="Increase tilt" title="Increase tilt">▲</button>
+    <button class="center" data-a="tiltd" aria-label="Decrease tilt" title="Decrease tilt">▼</button>
+    <button class="wide" data-a="reset" title="Reset view">RESET</button>
+  </nav>
+  <label id="reliefBox">Relief<input type="range" id="relief" min="0" max="3" step="0.05" value="1" aria-label="River height exaggeration"></label>
+</aside>
+<div class="abs" id="bar"></div>
+<div class="abs" id="tl">
+  <button id="play" aria-label="Play" title="Play / pause (space)">▶</button><button id="replay" aria-label="Replay from first day" title="Replay">↺</button>
+  <div id="chartWrap"><canvas id="chart" aria-hidden="true"></canvas><input id="timeline" type="range" min="0" max="1" step="0.01" value="0" aria-label="Discharge timeline"></div>
+  <button id="spd" aria-label="Playback speed" title="Change playback speed">1×</button>
+</div>
+<footer class="abs" id="foot">
+  <div id="variance"><strong id="ratio">—</strong><span title="Combined totals vary with the number of reporting gauges">reported peak to floor</span><button id="jumpPeak" title="Jump to highest combined discharge">peak day →</button></div>
+  <div id="credits"><div class="keys">space plays · ← → step · drag pans · right-drag turns &amp; tilts · wheel zooms · hover a river</div><div>BoM Water Data Online · OpenStreetMap waterways · <a href="https://mapped.earth/river-pulse/" target="_blank" rel="noopener">Inspired by mapped.earth ↗</a></div></div>
+</footer>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
+<script src="data/data.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const R = window.RIVERDATA;
+if (!R) { $('err').style.display='grid'; $('err').textContent='data/data.js not found — run scripts/build_data.py'; throw 0; }
+const { meta, gauges, rivers } = R, STEP = meta.step;
+// Stop at the last interval with comparable coverage: partial final intervals
+// otherwise look like a sudden fall in discharge.
+const coverage=Array.from({length:meta.n},(_,i)=>gauges.reduce((n,g)=>n+(g.flow?.[i]!=null?1:0),0));
+const coverageMax=Math.max(...coverage,1);
+const lastCovered=coverage.reduce((last,n,i)=>n>=coverageMax*.9?i:last,-1);
+const N=lastCovered>=1?lastCovered+1:meta.n;
+const t0 = new Date(meta.start);
+
+// ---------- helpers ----------
+const ML_TO_CMS = 1 / 86.4;
+let useCms = true;
+const fmtFlow = ml => useCms ? Math.round(ml * ML_TO_CMS).toLocaleString('en-AU') : Math.round(ml).toLocaleString('en-AU');
+const flowUnit = () => useCms ? 'm³/s' : 'ML/d';
+function samp(a, f) {
+  if (!a) return NaN;
+  const i = Math.min(N - 1, Math.floor(f)), j = Math.min(i + 1, N - 1), w = f - i, x = a[i], y = a[j];
+  if (x == null) return y == null ? NaN : y; if (y == null) return x; return x + (y - x) * w;
+}
+const T_LO = 12, T_HI = 26;
+$('tLo').textContent = T_LO + ' °C'; $('tHi').textContent = T_HI + ' °C';
+const RAMP = [[31,127,128],[127,181,154],[234,219,165],[232,160,90],[217,88,42],[140,42,20]];
+function ramp(t) {
+  if (isNaN(t)) return [118,132,150];
+  const u = Math.max(0, Math.min(1, (t - T_LO) / (T_HI - T_LO))) * (RAMP.length - 1), i = Math.min(RAMP.length - 2, u | 0), w = u - i;
+  return RAMP[i].map((c, k) => Math.round(c + (RAMP[i+1][k] - c) * w));
+}
+
+// ---------- geometry: buffer each river chunk into a thin polygon ----------
+const flowMean = g => { const a = g.flow; if (!a) return 0; let s = 0, n = 0; for (const v of a) if (v != null) { s += v; n++; } return n ? s / n : 0; };
+gauges.forEach(g => { g.fm = flowMean(g); });
+let lvRange = gauges.map(g => { if (!g.level) return null; const v = g.level.filter(x => x != null); return v.length ? [Math.min(...v), Math.max(...v)] : null; });
+
+const chunks = rivers.map(r => {
+  const c = r.c, k = Math.cos(c[0][1] * Math.PI / 180);
+  let fm = 0; r.g.forEach((gi, q) => fm += gauges[gi].fm * r.w[q]);
+  const wd = r.g.length ? 0.0014 + 0.0032 * Math.log10(1 + Math.max(0, fm)) : 0.0007;      // visual half-width, scaled by the observed October mean
+  const L = [], Rr = [];
+  for (let i = 0; i < c.length; i++) {
+    const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)];
+    let dx = (b[0] - a[0]) * k, dy = b[1] - a[1]; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
+    L.push([c[i][0] - dy * wd / k, c[i][1] + dx * wd]); Rr.push([c[i][0] + dy * wd / k, c[i][1] - dx * wd]);
+  }
+  return { ring:[...L, ...Rr.reverse()], path:c, g:r.g, w:r.w, mean:fm, h:0, col:[94,117,134,180], flow:NaN, temp:NaN, lat:c[0][1], lon:c[0][0] };
+});
+const gaugePts = gauges.map((g, i) => ({ i, g, pos:[g.lon, g.lat] }));
+
+// ---------- map ----------
+const HOME = { center:[145.5, -31.7], zoom:4.9, pitch:38, bearing:-9 };
+const map = new maplibregl.Map({
+  container:'map', ...HOME, maxPitch:80, antialias:true, attributionControl:false,
+  style:{ version:8, sources:{}, layers:[{ id:'bg', type:'background', paint:{'background-color':'#91abcc'} }] }
+});
+const overlay = new deck.MapboxOverlay({ interleaved:false, layers:[] });
+map.addControl(overlay);
+
+// ---------- state ----------
+let frac = 0, playing = false, speedIx = 0, last = performance.now(), dirty = true, hover = null, relief = 1;
+const SPEEDS = [1, 2, 4, 8];
+$('timeline').max = N - 1;
+const dateAt = f => new Date(t0.getTime() + f * STEP * 3600e3);
+const dateLabel = (f, short=false) => dateAt(f).toLocaleDateString('en-AU', { day:'numeric', month:short?'short':'long', year:short?undefined:'numeric', timeZone:'Australia/Sydney' });
+const tip = $('tip');
+
+function updateValues() {
+  let tot = 0, nf = 0, nt = 0;
+  const gf = gauges.map(g => samp(g.flow, frac)), gt = gauges.map(g => samp(g.temp, frac));
+  gf.forEach(v => { if (!isNaN(v)) { tot += v; nf++; } }); gt.forEach(v => { if (!isNaN(v)) nt++; });
+  for (const c of chunks) {
+    let f = 0, fw = 0, t = 0, tw = 0;
+    for (let q = 0; q < c.g.length; q++) {
+      const v = gf[c.g[q]], tv = gt[c.g[q]];
+      if (!isNaN(v)) { f += v * c.w[q]; fw += c.w[q]; }
+      if (!isNaN(tv)) { t += tv * c.w[q]; tw += c.w[q]; }
+    }
+    c.flow = fw ? f / fw : NaN; c.temp = tw ? t / tw : NaN;
+    c.h = (isNaN(c.flow) ? 0 : 220 + Math.log10(1 + Math.max(0,c.flow)) ** 2 * 420) * relief;
+    c.col = isNaN(c.temp) ? [94,117,134,isNaN(c.flow)?70:190] : [...ramp(c.temp), 245];
+  }
+  return { tot, nf, nt };
+}
+
+let stats = { tot:0, nf:0, nt:0 }, totSeries = [], maxTot = 1, peakIx = 0;
+(function () {
+  for (let i = 0; i < N; i++) { let s = 0; for (const g of gauges) if (g.flow && g.flow[i] != null) s += g.flow[i]; totSeries.push(s); }
+  maxTot = Math.max(...totSeries, 1); peakIx = totSeries.indexOf(maxTot);
+})();
+
+function showTip(info) {
+  const c = info.object;
+  if (!c || !['rivers','network'].includes(info.layer?.id)) { tip.style.display='none'; return; }
+  const near = c.g.length ? gauges[c.g[0]] : null;
+  tip.replaceChildren();
+  const name = document.createElement('h2'); name.textContent = near ? near.name.replace(/ @ /g, ' · ') : 'Ungauged river reach';
+  const value = document.createElement('div'); value.className='value'; value.textContent = isNaN(c.flow) ? '— ' : fmtFlow(c.flow) + ' ';
+  const unit = document.createElement('small'); unit.textContent = flowUnit(); value.append(unit);
+  const detail = document.createElement('div'); detail.className='detail';
+  const pct = c.mean > 0 && !isNaN(c.flow) ? Math.round(c.flow / c.mean * 100) + '% of October mean' : 'No discharge observation';
+  detail.textContent = pct + ' · ' + (isNaN(c.temp) ? 'temperature unavailable' : c.temp.toFixed(1) + ' °C');
+  const source = document.createElement('div'); source.className='detail'; source.textContent=near ? 'Estimated reach · nearest gauge ' + near.id : 'No gauge nearby';
+  tip.append(name,value,detail,source); tip.style.display='block';
+  tip.style.left = Math.max(8,Math.min(info.x+14,innerWidth-tip.offsetWidth-10))+'px';
+  tip.style.top = Math.max(8,Math.min(info.y+14,innerHeight-tip.offsetHeight-10))+'px';
+}
+function render() {
+  stats = updateValues(); dirty = false;
+  overlay.setProps({ layers:[
+    new deck.PathLayer({id:'network',data:chunks,getPath:d=>d.path.map(p=>[p[0],p[1],d.h]),getColor:d=>d.col,getWidth:1.1,widthUnits:'pixels',widthMinPixels:.7,jointRounded:true,pickable:true,autoHighlight:true,highlightColor:[255,247,224,100],updateTriggers:{getPath:[frac,relief],getColor:frac}}),
+    new deck.PathLayer({ id:'shadows', data:chunks, getPath:d=>d.path.map(p=>[p[0]+.014*relief,p[1]-.014*relief]), getColor:[41,57,65,28], getWidth:d=>1+Math.log10(1+Math.max(0,d.mean))*.5, widthUnits:'pixels', widthMinPixels:.6, jointRounded:true, pickable:false, updateTriggers:{getPath:relief} }),
+    new deck.SolidPolygonLayer({ id:'rivers', data:chunks, getPolygon:d=>d.ring, extruded:true, getElevation:d=>d.h, getFillColor:d=>d.col,
+      material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true,
+      autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getElevation:[frac,relief],getFillColor:frac} })
+  ], pickingRadius:6, onHover:info=>{showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:showTip });
+  $('date').textContent = dateLabel(frac);
+  $('timeline').value = frac;
+  $('timeline').setAttribute('aria-valuetext',dateLabel(frac)+' · '+fmtFlow(samp(totSeries,frac))+' '+flowUnit());
+  const cur = samp(totSeries,frac);
+  $('flowNow').textContent=fmtFlow(cur); $('flowU').textContent=flowUnit();
+  $('flowMeter').style.width=(100*cur/maxTot)+'%';
+  $('flowSub').textContent=stats.nf+' flow · '+stats.nt+' temperature gauges';
+  $('pillTxt').textContent=gauges.length+' gauges · '+rivers.length.toLocaleString('en-AU')+' reaches';
+  drawChart();
+}
+const minTot = Math.min(...totSeries.filter(v=>v>0));
+$('ratio').textContent = Number.isFinite(minTot) ? (maxTot/minTot).toFixed(1)+'×' : '—';
+$('jumpPeak').textContent = 'peak day: '+dateLabel(peakIx,true)+' →';
+$('jumpPeak').onclick = () => { frac=peakIx; dirty=true; setPlay(false); };
+
+// ---------- timeline chart ----------
+const cv = $('chart'), cx = cv.getContext('2d');
+function drawChart() {
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, w, h);
+  const top = 22, base = h - 18, X = i => i / (N - 1) * (w - 4) + 2, Y = v => base - (v / maxTot) * (base - top - 6);
+  cx.beginPath(); cx.moveTo(X(0), base); totSeries.forEach((v, i) => cx.lineTo(X(i), Y(v))); cx.lineTo(X(N - 1), base); cx.closePath();
+  cx.fillStyle = 'rgba(47,127,149,.28)'; cx.fill();
+  cx.beginPath(); totSeries.forEach((v, i) => i ? cx.lineTo(X(i), Y(v)) : cx.moveTo(X(i), Y(v))); cx.strokeStyle = '#2f7f95'; cx.lineWidth = 1.4; cx.stroke();
+  cx.fillStyle = 'rgba(35,38,43,.62)'; cx.font = '10px IBM Plex Mono, monospace'; cx.textAlign = 'center';
+  const perDay = 24 / STEP;
+  const dayStep = N / perDay > 45 ? 14 : 3;
+  for (let d = 0; d * perDay < N; d += dayStep) { const i = d * perDay, dt = new Date(t0.getTime() + d * 864e5); cx.fillText(dt.toLocaleDateString('en-AU', { day:'numeric', month:'short', timeZone:'Australia/Sydney' }), Math.min(w - 20, Math.max(20, X(i))), h - 3); }
+  const xc = X(frac); cx.strokeStyle = '#23262b'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(xc, top); cx.lineTo(xc, base); cx.stroke();
+  cx.beginPath(); cx.arc(xc, Y(samp(totSeries, frac)), 3.5, 0, 7); cx.fillStyle = '#23262b'; cx.fill();
+  cx.fillStyle = '#23262b'; cx.font = '13px Source Serif 4, serif'; cx.textAlign = xc > w - 220 ? 'right' : xc < 200 ? 'left' : 'center';
+  cx.font = '11px IBM Plex Mono, monospace';
+  cx.fillText(`${fmtFlow(samp(totSeries, frac))} ${flowUnit()} · ${dateLabel(frac,true)}`, Math.max(2,Math.min(w-2,xc)), 12);
+  const xp=X(peakIx); cx.setLineDash([2,3]); cx.strokeStyle='rgba(173,69,40,.6)'; cx.lineWidth=1; cx.beginPath(); cx.moveTo(xp,top+3); cx.lineTo(xp,base); cx.stroke(); cx.setLineDash([]);
+}
+$('timeline').oninput = e => { frac=+e.target.value; dirty=true; setPlay(false); };
+addEventListener('resize',()=>{dirty=true;});
+
+// ---------- controls ----------
+const setPlay = p => { playing = p; $('play').textContent = p ? 'Ⅱ' : '▶'; $('play').setAttribute('aria-label',p?'Pause':'Play'); $('play').setAttribute('aria-pressed',String(p)); };
+$('play').onclick = () => setPlay(!playing);
+$('replay').onclick = () => { frac = 0; dirty = true; setPlay(true); };
+$('spd').onclick = () => { speedIx = (speedIx + 1) % SPEEDS.length; $('spd').textContent = SPEEDS[speedIx] + '×'; };
+$('uCms').onclick = () => { useCms = true; $('uCms').classList.add('on'); $('uMl').classList.remove('on'); $('uCms').setAttribute('aria-pressed','true'); $('uMl').setAttribute('aria-pressed','false'); dirty=true; };
+$('uMl').onclick = () => { useCms = false; $('uMl').classList.add('on'); $('uCms').classList.remove('on'); $('uMl').setAttribute('aria-pressed','true'); $('uCms').setAttribute('aria-pressed','false'); dirty=true; };
+$('relief').oninput = e => { relief = +e.target.value; dirty = true; };
+addEventListener('keydown', e => {
+  if (e.key==='Escape') { $('drawer').hidden=true; $('pill').setAttribute('aria-expanded','false'); $('regionMenu').hidden=true; $('region').setAttribute('aria-expanded','false'); }
+  if (e.target.matches('input,button,a')) return;
+  if (e.code === 'Space') { e.preventDefault(); setPlay(!playing); }
+  if (e.code === 'ArrowRight') { e.preventDefault(); setPlay(false); frac = Math.min(N - 1, Math.floor(frac) + 1); dirty = true; }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); setPlay(false); frac = Math.max(0, Math.ceil(frac) - 1); dirty = true; }
+});
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
+  const a = b.dataset.a, d = 250;
+  if (a === 'zin') map.zoomTo(map.getZoom() + .7, { duration:d }); if (a === 'zout') map.zoomTo(map.getZoom() - .7, { duration:d });
+  if (a === 'up') map.panBy([0, -120], { duration:d }); if (a === 'down') map.panBy([0, 120], { duration:d });
+  if (a === 'left') map.panBy([-120, 0], { duration:d }); if (a === 'right') map.panBy([120, 0], { duration:d });
+  if (a === 'rotl') map.rotateTo(map.getBearing() - 20, { duration:d }); if (a === 'rotr') map.rotateTo(map.getBearing() + 20, { duration:d });
+  if (a === 'tiltu') map.easeTo({ pitch:Math.min(80, map.getPitch() + 8), duration:d }); if (a === 'tiltd') map.easeTo({ pitch:Math.max(0, map.getPitch() - 8), duration:d });
+  if (a === 'reset') resetView();
+});
+
+function resetView(duration=800) {
+  const mobile=innerWidth<=760;
+  map.fitBounds([[137.2,-38.0],[153.6,-24.2]], {padding:{top:mobile?150:45,bottom:mobile?265:225,left:mobile?20:Math.min(360,innerWidth*.25),right:mobile?25:120},pitch:38,bearing:-9,duration:0,maxZoom:6});
+  const boost=mobile?.12:Math.max(0,Math.min(.8,(innerWidth/innerHeight-1.2)*1.4));
+  map.zoomTo(map.getZoom()+boost,{duration});
+}
+$('region').onclick=()=>{ const open=$('regionMenu').hidden; $('regionMenu').hidden=!open; $('region').setAttribute('aria-expanded',String(open)); };
+$('pill').onclick=()=>{const open=$('drawer').hidden; $('drawer').hidden=!open; $('pill').setAttribute('aria-expanded',String(open)); $('pillArrow').textContent=open?'▾':'▸'; if(open){listGauges();$('search').focus();}};
+function listGauges() {
+  const q=$('search').value.toLowerCase(); $('gaugeList').replaceChildren();
+  const found=gauges.filter(g=>(g.name+' '+g.id).toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+  for(const g of found){const b=document.createElement('button'); b.textContent=g.name; const small=document.createElement('small'); small.textContent=g.id+' · '+['flow','level','temp'].filter(k=>g[k]).join(' / '); b.append(small); b.onclick=()=>{map.flyTo({center:[g.lon,g.lat],zoom:8,pitch:45,duration:1000});$('drawer').hidden=true;$('pill').setAttribute('aria-expanded','false');$('pillArrow').textContent='▸';};$('gaugeList').append(b);}
+  if(!found.length) $('gaugeList').textContent='No matching gauge';
+}
+$('search').oninput=listGauges;
+let lastDraw=0;
+function loop(now) {
+  const dt=Math.min(.1,(now-last)/1000); last=now;
+  if(playing){frac+=dt*SPEEDS[speedIx]*2.2;if(frac>N-1){frac=N-1;setPlay(false);}dirty=true;}
+  if(dirty && now-lastDraw>40){render();lastDraw=now;}
+  requestAnimationFrame(loop);
+}
+map.on('load',()=>{resetView(0);render();requestAnimationFrame(loop);});
+map.on('error',e=>{console.error('Map error:',e.error);});
+</script>
+</body>
+</html>
