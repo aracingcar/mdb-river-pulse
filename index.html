@@ -425,7 +425,7 @@ function updateValues() {
       if (!isNaN(tv)) { t += tv * c.w[q]; tw += c.w[q]; }
     }
     c.flow = fw ? f / fw : NaN; c.temp = tw ? t / tw : NaN;
-    c.h = (isNaN(c.flow) ? 60 : 220 + Math.log10(1 + Math.max(0,c.flow)) ** 2 * 420) * relief;
+    c.h = (isNaN(c.flow) ? 60 : 220 + Math.log10(1 + Math.max(0,c.flow)) ** 2 * 460) * relief;
     c.col = isNaN(c.temp) ? [...NODATA, isNaN(c.flow) ? 150 : 215] : [...ramp(c.temp), 245];
   }
   for (const c of constraints) {
