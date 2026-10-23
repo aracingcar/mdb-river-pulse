@@ -1,3 +1,5 @@
+Warning: fsx was declared with const; use let for reassignable variables.
+Warning: pagex was declared with const; use let for reassignable variables.
 <!doctype html>
 <html lang="en">
 <head>
@@ -55,7 +57,7 @@
   #ewrObj .row.hit .fill { background:#7be0a5; } #ewrObj .row.hit b { animation:ewrObjHit .6s ease-out; } #ewrObj .n { text-align:right; color:#23262b; }
   @keyframes ewrObjHit { 0% { transform:scale(1.5); } 100% { transform:scale(1); } }
   body.ewrOn #camera { top:max(23%,200px); }
-  @media (max-width:760px) { #ewrObj { right:14px; width:190px; top:14px; } }
+  @media (max-width:760px) { #ewrObj { right:14px; width:190px; top:14px; } #site-menu { right:210px; } }
   #ewrObj .row.max .trk { overflow:visible; animation:ewrFrenzy .9s ease-in-out infinite alternate; }
   #ewrObj .row.max .fill { background:linear-gradient(90deg,#2a9d63,#8be8b0,#ffe27a,#8be8b0,#2a9d63); background-size:200% 100%; animation:ewrShine .7s linear infinite; box-shadow:0 0 6px 1px rgba(255,214,90,.9); }
   #ewrObj .row.max b { color:#b8860b; text-shadow:0 0 6px rgba(255,214,90,.9); }
@@ -138,9 +140,28 @@
   }
   @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; } }
   #barrage { left:16px; top:200px; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); pointer-events:none; } #barrage b { display:block; font:400 24px/1.15 var(--serif); letter-spacing:0; text-transform:none; color:var(--ink); margin-top:3px; } #barrage small { font:400 12px var(--serif); letter-spacing:0; text-transform:none; margin-left:4px; }
+  #site-menu { position:fixed; z-index:20; top:16px; right:300px; font:9px 'IBM Plex Mono',monospace; color:var(--dim); }
+  #site-menu summary { list-style:none; cursor:pointer; padding:5px 7px; color:inherit; background:transparent; border:1px solid transparent; border-radius:5px; }
+  #site-menu summary:hover, #site-menu[open] summary { color:var(--ink); background:rgba(245,242,237,.76); border-color:#d0d1d0; }
+  #site-menu summary::-webkit-details-marker { display:none; }
+  #site-menu summary::before { content:'⚙'; margin-right:6px; }
+  #site-menu summary::after { content:'⌄'; margin-left:6px; }
+  #site-menu[open] summary::after { content:'⌃'; }
+  #site-menu nav { position:absolute; top:calc(100% + 4px); right:0; min-width:190px; padding:8px; background:var(--paper); border:1px solid #d0d1d0; border-radius:6px; box-shadow:0 4px 16px rgba(38,57,76,.12); }
+  #site-menu nav::before { content:'PROJECT PAGES'; display:block; padding:5px 10px 7px; color:var(--dim); font-size:8px; letter-spacing:.08em; }
+  #site-menu a { display:block; padding:9px 10px; color:var(--ink); text-decoration:none; border-radius:4px; }
+  #site-menu a:hover, #site-menu a:focus-visible { background:#fff; }
 </style>
 </head>
 <body>
+<details id="site-menu">
+  <summary>Settings</summary>
+  <nav aria-label="Project pages">
+    <a href="https://aracingcar.github.io/">Main page</a>
+    <a href="https://aracingcar.github.io/mdb-model/">MDB Model</a>
+    <a href="https://aracingcar.github.io/mdb-river-pulse/" aria-current="page">MDB River Pulse</a>
+  </nav>
+</details>
 <div id="map"></div>
 <div id="ewrFx" aria-hidden="true"></div>
 <section id="ewrObj" hidden aria-label="Ecological objectives met by successful EWR events"><button id="ewrSdl" aria-expanded="false" aria-controls="ewrSdlMenu" aria-label="Filter by SDL unit"><span id="ewrSdlName">Ecological themes</span> <span>▾</span></button><div id="ewrSdlMenu" hidden></div><div id="ewrObjRows"></div><div id="ewrDisc" hidden><button id="ewrDiscBtn" aria-expanded="false" aria-controls="ewrDiscBody">Discoveries <span>▸</span></button><div id="ewrDiscBody" hidden><div id="ewrDiscN"></div><div id="ewrDiscRow"></div></div>
