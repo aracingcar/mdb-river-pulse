@@ -20,9 +20,9 @@
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden; font-family:var(--mono); }
   button,input { font:inherit; } button { color:inherit; cursor:pointer; } button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:2px solid #287b90; outline-offset:4px; }
   #map { position:absolute; inset:0; z-index:0; } .abs { position:absolute; z-index:2; }
-  #driveHint { position:absolute; right:18px; bottom:162px; z-index:4; max-width:min(390px,calc(100% - 36px)); padding:8px 10px; border:1px solid rgba(73,91,106,.28); border-radius:6px; background:rgba(250,247,242,.9); color:#34434d; font:9px/1.55 var(--mono); box-shadow:0 2px 8px rgba(20,35,45,.1); pointer-events:none; }
+  #driveHint { position:absolute; right:18px; top:70px; z-index:4; max-width:min(390px,calc(100% - 36px)); padding:8px 10px; border:1px solid rgba(73,91,106,.28); border-radius:6px; background:rgba(250,247,242,.9); color:#34434d; font:9px/1.55 var(--mono); box-shadow:0 2px 8px rgba(20,35,45,.1); pointer-events:none; }
   #driveHint.active { border-color:#287b90; background:rgba(250,247,242,.96); color:#164653; }
-  @media (max-width:760px) { #driveHint { right:14px; bottom:103px; max-width:calc(100% - 28px); font-size:8px; } }
+  @media (max-width:760px) { #driveHint { right:14px; top:70px; max-width:calc(100% - 28px); font-size:8px; } }
   #head { top:16px; left:18px; max-width:650px; pointer-events:none; z-index:2; }
   #head h1 { font:500 clamp(30px,3vw,49px)/1.04 var(--serif); margin:0 0 13px; letter-spacing:-.035em; max-width:650px; }
   #head .kick { font-size:11px; letter-spacing:.17em; line-height:1.8; text-transform:uppercase; margin-bottom:9px; }
