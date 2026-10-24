@@ -20,6 +20,9 @@
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden; font-family:var(--mono); }
   button,input { font:inherit; } button { color:inherit; cursor:pointer; } button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:2px solid #287b90; outline-offset:4px; }
   #map { position:absolute; inset:0; z-index:0; } .abs { position:absolute; z-index:2; }
+  #driveHint { position:absolute; right:18px; bottom:162px; z-index:4; max-width:min(390px,calc(100% - 36px)); padding:8px 10px; border:1px solid rgba(73,91,106,.28); border-radius:6px; background:rgba(250,247,242,.9); color:#34434d; font:9px/1.55 var(--mono); box-shadow:0 2px 8px rgba(20,35,45,.1); pointer-events:none; }
+  #driveHint.active { border-color:#287b90; background:rgba(250,247,242,.96); color:#164653; }
+  @media (max-width:760px) { #driveHint { right:14px; bottom:103px; max-width:calc(100% - 28px); font-size:8px; } }
   #head { top:16px; left:18px; max-width:650px; pointer-events:none; z-index:2; }
   #head h1 { font:500 clamp(30px,3vw,49px)/1.04 var(--serif); margin:0 0 13px; letter-spacing:-.035em; max-width:650px; }
   #head .kick { font-size:11px; letter-spacing:.17em; line-height:1.8; text-transform:uppercase; margin-bottom:9px; }
@@ -161,6 +164,7 @@
   </nav>
 </details>
 <div id="map"></div>
+<div id="driveHint" role="status" aria-live="polite">Click the car to select · W drive · A/D steer · S brake · Space jump · Q/E relief</div>
 <div id="ewrFx" aria-hidden="true"></div>
 <section id="ewrObj" hidden aria-label="Ecological objectives met by successful EWR events"><button id="ewrSdl" aria-expanded="false" aria-controls="ewrSdlMenu" aria-label="Filter by SDL unit"><span id="ewrSdlName">Ecological themes</span> <span>▾</span></button><div id="ewrSdlMenu" hidden></div><div id="ewrObjRows"></div><div id="ewrDisc" hidden><button id="ewrDiscBtn" aria-expanded="false" aria-controls="ewrDiscBody">Discoveries <span>▸</span></button><div id="ewrDiscBody" hidden><div id="ewrDiscN"></div><div id="ewrDiscRow"></div></div>
   <div id="ewrSb" hidden>
@@ -412,6 +416,14 @@ $('timeline').max = N - 1;
 const dateAt = f => new Date(t0.getTime() + (meta.aggregation==='daily_mean'?Math.floor(f):f) * STEP * 3600e3);
 const dateLabel = (f, short=false) => dateAt(f).toLocaleDateString('en-AU', { day:'numeric', month:short?'short':'long', year:short?undefined:'numeric', timeZone:'Australia/Sydney' });
 const tip = $('tip');
+const DRIVE_BIN=.16,driveRoadBins=new Map();
+for(const chunk of chunks)for(const point of chunk.path){const key=Math.floor((point[0]+180)/DRIVE_BIN)+','+Math.floor((point[1]+90)/DRIVE_BIN);let bin=driveRoadBins.get(key);if(!bin)driveRoadBins.set(key,bin=[]);bin.push({point,chunk});}
+function nearestDriveRoad(lon,lat,rings=1){const bx=Math.floor((lon+180)/DRIVE_BIN),by=Math.floor((lat+90)/DRIVE_BIN),cos=Math.cos(lat*Math.PI/180);let best=null,bestD=Infinity;for(let x=-rings;x<=rings;x++)for(let y=-rings;y<=rings;y++){const bin=driveRoadBins.get((bx+x)+','+(by+y));if(!bin)continue;for(const entry of bin){const dx=(entry.point[0]-lon)*111320*cos,dy=(entry.point[1]-lat)*111320,d=dx*dx+dy*dy;if(d<bestD){bestD=d;best=entry;}}}return best?{...best,distance:Math.sqrt(bestD)}:null;}
+const startRoad=nearestDriveRoad(145.5,-31.7,7);
+const playerCar={kind:'playerCar',pos:startRoad?startRoad.point.slice(0,2):[145.5,-31.7],heading:0,speed:0,selected:false,ground:0,jump:0,jumpV:0,z:40,groundRelief:relief};
+const driveKeys=new Set(),DRIVE_KEYS=new Set(['KeyW','KeyA','KeyS','KeyD','Space']);
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+function driveTick(dt){if(!playerCar.selected)return false;dt=Math.min(.06,dt);const oh=playerCar.heading,os=playerCar.speed,oj=playerCar.jump,ox=playerCar.pos[0],oy=playerCar.pos[1];const throttle=driveKeys.has('KeyW'),brake=driveKeys.has('KeyS'),steer=(driveKeys.has('KeyD')?1:0)-(driveKeys.has('KeyA')?1:0);const before=nearestDriveRoad(ox,oy,1),ground=before&&before.distance<26000?before.chunk.h:0;const accel=brake?0:throttle?14:0,friction=brake?32:throttle?0:4,steerRate=.14+.62*Math.min(1,Math.abs(playerCar.speed)/12);playerCar.heading=(playerCar.heading+steer*steerRate*dt+Math.PI*4)%(Math.PI*2);if(accel){const grade=(ground-playerCar.ground)/Math.max(2,Math.abs(playerCar.speed)*dt),drag=Math.min(12,Math.max(0,grade)*relief*3);playerCar.speed=Math.min(58,playerCar.speed+Math.max(2,accel-drag)*dt);}else playerCar.speed=Math.max(0,playerCar.speed-friction*dt);const distance=playerCar.speed*dt,cos=Math.max(.15,Math.cos(playerCar.pos[1]*Math.PI/180));playerCar.pos[0]+=Math.sin(playerCar.heading)*distance/(111320*cos);playerCar.pos[1]+=Math.cos(playerCar.heading)*distance/111320;if(playerCar.jumpV||playerCar.jump){playerCar.jumpV-=950*dt;playerCar.jump=Math.max(0,playerCar.jump+playerCar.jumpV*dt);if(playerCar.jump===0)playerCar.jumpV=0;}const road=nearestDriveRoad(playerCar.pos[0],playerCar.pos[1],1);playerCar.ground=road&&road.distance<26000?road.chunk.h:0;playerCar.groundRelief=relief;playerCar.z=playerCar.ground+45+playerCar.jump;if(distance>.01){const p=map.project(playerCar.pos),w=map.getContainer().clientWidth,h=map.getContainer().clientHeight;if(p.x<w*.2||p.x>w*.8||p.y<h*.2||p.y>h*.8)map.setCenter(playerCar.pos);}return distance>.01||Math.abs(playerCar.heading-oh)>.0001||Math.abs(playerCar.speed-os)>.001||playerCar.jump!==oj||Math.abs(playerCar.groundRelief-relief)>.001||ox!==playerCar.pos[0]||oy!==playerCar.pos[1];}
 
 function updateValues() {
   let tot = 0, nf = 0, nt = 0;
@@ -500,7 +512,7 @@ function render() {
   if (mk !== curMonth) { curMonth = mk; chunks.forEach((d, i) => { const sh = shape(d.path, d.g, d.w, mk); d.ring = sh.ring; d.mean = sh.mean; }); }
   updateLakes();
   { const b = barrNow(); $('barrageNow').textContent = isNaN(b) ? '—' : (useCms ? Math.round(b * ML_TO_CMS_B).toLocaleString('en-AU') : Math.round(b).toLocaleString('en-AU')); $('barrageU').textContent = useCms ? 'm³/s' : 'ML/d'; }
-  stats = updateValues(); dirty = false;
+  stats = updateValues(); playerCar.ground=(nearestDriveRoad(playerCar.pos[0],playerCar.pos[1],1)?.chunk.h)||0; playerCar.z=playerCar.ground+45+playerCar.jump; dirty = false;
   const active=constraintsVisible ? constraints.filter(c=>c.status!=='inactive') : [];
   overlay.setProps({ layers:[
     new deck.PolygonLayer({ id:'wetlands', data:R.wetlands||[], getPolygon:d=>d.p, extruded:false, getFillColor:[64,112,128,70], getLineColor:[40,84,100,200], stroked:true, lineWidthUnits:'pixels', getLineWidth:1.2, pickable:false }),
@@ -513,8 +525,9 @@ function render() {
       autoHighlight:true, highlightColor:[255,247,224,100], updateTriggers:{getPolygon:curMonth,getElevation:[frac,relief],getFillColor:frac} }),
     new deck.SolidPolygonLayer({ id:'constraint-footprints', data:constraintPieces(constraints), getPolygon:d=>d.poly, extruded:true, getElevation:d=>d.elevation, getFillColor:[255,115,245,0], getLineColor:[255,115,245,0], getLineWidth:2.8, lineWidthUnits:'pixels', stroked:true, pickable:false, material:{ambient:.9,diffuse:.35,shininess:4,specularColor:[35,35,35]}, updateTriggers:{getPolygon:frac,getElevation:[frac,relief]} }),
     new deck.SolidPolygonLayer({ id:'constraints', data:constraintPieces(active), getPolygon:d=>d.poly, extruded:true, getElevation:d=>d.elevation, getFillColor:d=>d.c.fillColor,
-      material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true, updateTriggers:{getPolygon:frac,getElevation:[frac,relief],getFillColor:frac} })
-  ], pickingRadius:6, onHover:info=>{hover=info;showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:info=>{hover=info;showTip(info);} });
+      material:{ambient:.78,diffuse:.45,shininess:8,specularColor:[35,35,35]}, pickable:true, updateTriggers:{getPolygon:frac,getElevation:[frac,relief],getFillColor:frac} }),
+    new deck.IconLayer({id:'player-car',data:[playerCar],iconAtlas:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#17252e" d="M15 17 20 7h24l5 10 6 5v28l-6 2-3 8H18l-3-8-6-2V22z"/><path fill="#e55735" d="M19 19 23 10h18l4 9 5 4v24l-5 2-2 7H21l-2-7-5-2V23z"/><path fill="#bfe9ef" d="m23 20 3-7h12l3 7-3 7H26z"/><path fill="#bfe9ef" d="M25 31h14v11H25z"/><path fill="#fff" d="M18 28h4v8h-4zM42 28h4v8h-4z"/></svg>'),iconMapping:{car:{x:0,y:0,width:64,height:64,mask:false,anchorY:32}},getIcon:()=> 'car',getPosition:d=>[d.pos[0],d.pos[1],d.z],getSize:d=>d.selected?34:29,sizeUnits:'pixels',sizeMinPixels:25,sizeMaxPixels:38,billboard:true,getAngle:d=>d.heading*180/Math.PI,pickable:true,updateTriggers:{getPosition:[playerCar.pos[0],playerCar.pos[1],playerCar.z],getAngle:playerCar.heading,getSize:playerCar.selected}})
+  ], pickingRadius:8, onHover:info=>{hover=info;showTip(info);map.getCanvas().style.cursor=info.object?'pointer':'';}, onClick:info=>{if(info.object?.kind==='playerCar'){playerCar.selected=!playerCar.selected;playerCar.speed=0;driveKeys.clear();if(playerCar.selected)setPlay(false);$('driveHint').classList.toggle('active',playerCar.selected);$('driveHint').textContent=playerCar.selected?'Car selected · W drive · A/D steer · S brake · Space jump · Q/E relief':'Click the car to select · W drive · A/D steer · S brake · Space jump · Q/E relief';dirty=true;return;}hover=info;showTip(info);} });
   $('date').textContent = dateLabel(frac);
   $('timeline').value = frac;
   $('timeline').setAttribute('aria-valuetext',dateLabel(frac)+' · '+fmtFlow(samp(totSeries,frac))+' '+flowUnit());
@@ -573,10 +586,12 @@ $('constraintsToggle').onchange = e => { constraintsVisible = e.target.checked; 
 addEventListener('keydown', e => {
   if (e.key==='Escape') { $('drawer').hidden=true; $('pill').setAttribute('aria-expanded','false'); $('regionMenu').hidden=true; $('region').setAttribute('aria-expanded','false'); }
   if (e.target.matches('input,button,a')) return;
+  if(playerCar.selected&&DRIVE_KEYS.has(e.code)){e.preventDefault();if(e.code==='KeyQ'||e.code==='KeyE'){if(e.repeat)return;relief=clamp(relief+(e.code==='KeyE'?.1:-.1),0,3);$('relief').value=relief;dirty=true;}else if(e.code==='Space'){if(!e.repeat&&playerCar.jump===0)playerCar.jumpV=600;}else driveKeys.add(e.code);return;}
   if (e.code === 'Space') { e.preventDefault(); setPlay(!playing); }
   if (e.code === 'ArrowRight') { e.preventDefault(); setPlay(false); frac = Math.min(N - 1, Math.floor(frac) + 1); dirty = true; }
   if (e.code === 'ArrowLeft') { e.preventDefault(); setPlay(false); frac = Math.max(0, Math.ceil(frac) - 1); dirty = true; }
 });
+addEventListener('keyup',e=>driveKeys.delete(e.code)); addEventListener('blur',()=>driveKeys.clear());
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
   const a = b.dataset.a, d = 250;
   if (a === 'zin') map.zoomTo(map.getZoom() + .7, { duration:d }); if (a === 'zout') map.zoomTo(map.getZoom() - .7, { duration:d });
@@ -967,10 +982,11 @@ $('search').addEventListener('keydown', e => {
   lootBox.replaceChildren(); $('search').value = ''; listGauges();
   $('drawer').hidden = true; $('pill').setAttribute('aria-expanded', 'false'); $('pillArrow').textContent = '▸';
 });
-let lastDraw=0;
+let lastDraw=0,lastDriveFrame=performance.now();
 function loop(now) {
   const dt=Math.min(.1,(now-last)/1000); last=now;
   if(playing){frac+=dt*SPEEDS[speedIx]*2.2;if(frac>N-1){frac=N-1;setPlay(false);}dirty=true;}
+  if(playerCar.selected&&now-lastDriveFrame>=30){if(driveTick((now-lastDriveFrame)/1000))dirty=true;lastDriveFrame=now;}
   ewrTick();
   if(dirty && now-lastDraw>=16){render();lastDraw=now;}
   requestAnimationFrame(loop);
