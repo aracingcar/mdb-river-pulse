@@ -512,7 +512,7 @@ function render() {
   if (mk !== curMonth) { curMonth = mk; chunks.forEach((d, i) => { const sh = shape(d.path, d.g, d.w, mk); d.ring = sh.ring; d.mean = sh.mean; }); }
   updateLakes();
   { const b = barrNow(); $('barrageNow').textContent = isNaN(b) ? '—' : (useCms ? Math.round(b * ML_TO_CMS_B).toLocaleString('en-AU') : Math.round(b).toLocaleString('en-AU')); $('barrageU').textContent = useCms ? 'm³/s' : 'ML/d'; }
-  stats = updateValues(); playerCar.ground=(nearestDriveRoad(playerCar.pos[0],playerCar.pos[1],1)?.chunk.h)||0; playerCar.z=playerCar.ground+45+playerCar.jump; dirty = false;
+  stats = updateValues(); const carRoad=nearestDriveRoad(playerCar.pos[0],playerCar.pos[1],1); playerCar.ground=carRoad&&carRoad.distance<26000?carRoad.chunk.h:0; playerCar.z=playerCar.ground+45+playerCar.jump; dirty = false;
   const active=constraintsVisible ? constraints.filter(c=>c.status!=='inactive') : [];
   overlay.setProps({ layers:[
     new deck.PolygonLayer({ id:'wetlands', data:R.wetlands||[], getPolygon:d=>d.p, extruded:false, getFillColor:[64,112,128,70], getLineColor:[40,84,100,200], stroked:true, lineWidthUnits:'pixels', getLineWidth:1.2, pickable:false }),
